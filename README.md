@@ -81,7 +81,7 @@ A tener en cuenta para realizar validaciones segun el tipo de datos que devuelve
 
 <img width="706" height="898" alt="Captura de pantalla 2025-08-06 a la(s) 11 45 15" src="https://github.com/user-attachments/assets/0b68b798-74e5-47cb-90a7-44e5a60e67e7" />
 
-
+MUY IMPORTANTE: No se persisten datos en base propio sino todo a traves de servicios  web la tabla indicada solo es una referencia de como estan guardados los datos en la base destino que manejas las apis.
 
 
 
