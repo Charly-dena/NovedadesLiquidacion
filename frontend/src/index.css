@@ -1,68 +1,199 @@
-:root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+/* Importar fuentes de Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@300;400;500;600&display=swap');
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
-
-body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
-}
-
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
-
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-}
-
-@media (prefers-color-scheme: light) {
+/* Configuración base del proyecto */
+@layer base {
   :root {
-    color: #213547;
-    background-color: #ffffff;
+    /* Variables CSS personalizadas */
+    --color-primary: 14 165 233; /* blue-500 */
+    --color-secondary: 100 116 139; /* slate-500 */
+    --color-success: 34 197 94; /* green-500 */
+    --color-warning: 245 158 11; /* amber-500 */
+    --color-danger: 239 68 68; /* red-500 */
   }
+
+  html {
+    font-feature-settings: 'cv01', 'cv02', 'cv03', 'cv04';
+  }
+
+  body {
+    @apply font-sans antialiased;
+    @apply bg-white text-secondary-900;
+    @apply leading-relaxed;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Estilos para elementos base */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold text-secondary-900;
+    @apply leading-tight;
+  }
+
+  h1 { @apply text-4xl; }
+  h2 { @apply text-3xl; }
+  h3 { @apply text-2xl; }
+  h4 { @apply text-xl; }
+  h5 { @apply text-lg; }
+  h6 { @apply text-base; }
+
+  a {
+    @apply text-primary-600 hover:text-primary-700;
+    @apply transition-colors duration-200;
+    @apply no-underline;
+  }
+
   a:hover {
-    color: #747bff;
+    @apply underline;
   }
-  button {
-    background-color: #f9f9f9;
+
+  /* Scrollbar personalizada */
+  ::-webkit-scrollbar {
+    @apply w-2;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-secondary-100;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-secondary-300 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-secondary-400;
+  }
+}
+
+/* Componentes reutilizables */
+@layer components {
+  /* Botones base */
+  .btn {
+    @apply px-4 py-2 rounded-lg font-medium;
+    @apply transition-all duration-200;
+    @apply focus:outline-none focus:ring-2 focus:ring-offset-2;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center;
+  }
+
+  .btn-primary {
+    @apply bg-primary-600 text-white;
+    @apply hover:bg-primary-700;
+    @apply focus:ring-primary-500;
+  }
+
+  .btn-secondary {
+    @apply bg-secondary-100 text-secondary-700;
+    @apply hover:bg-secondary-200;
+    @apply focus:ring-secondary-500;
+  }
+
+  .btn-success {
+    @apply bg-success-600 text-white;
+    @apply hover:bg-success-700;
+    @apply focus:ring-success-500;
+  }
+
+  .btn-warning {
+    @apply bg-warning-600 text-white;
+    @apply hover:bg-warning-700;
+    @apply focus:ring-warning-500;
+  }
+
+  .btn-danger {
+    @apply bg-danger-600 text-white;
+    @apply hover:bg-danger-700;
+    @apply focus:ring-danger-500;
+  }
+
+  /* Cards */
+  .card {
+    @apply bg-white rounded-xl shadow-soft;
+    @apply border border-secondary-200;
+    @apply p-6;
+  }
+
+  .card-header {
+    @apply border-b border-secondary-200 pb-4 mb-4;
+  }
+
+  /* Inputs y formularios */
+  .input {
+    @apply w-full px-3 py-2 rounded-lg;
+    @apply border border-secondary-300;
+    @apply focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent;
+    @apply placeholder:text-secondary-400;
+    @apply transition-all duration-200;
+  }
+
+  .input-error {
+    @apply border-danger-500 focus:ring-danger-500;
+  }
+
+  .label {
+    @apply block text-sm font-medium text-secondary-700 mb-1;
+  }
+
+  .error-message {
+    @apply text-sm text-danger-600 mt-1;
+  }
+
+  /* Utilidades de layout */
+  .container-app {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  .section-padding {
+    @apply py-8 lg:py-12;
+  }
+
+  /* Estados de carga */
+  .loading-spinner {
+    @apply animate-spin rounded-full border-2 border-secondary-300 border-t-primary-600;
+  }
+
+  /* Transiciones suaves */
+  .transition-smooth {
+    @apply transition-all duration-300 ease-in-out;
+  }
+}
+
+/* Utilidades específicas del proyecto */
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Gradientes personalizados */
+  .gradient-primary {
+    background: linear-gradient(135deg, rgb(var(--color-primary)) 0%, rgb(var(--color-primary)) 100%);
+  }
+
+  .gradient-secondary {
+    background: linear-gradient(135deg, rgb(var(--color-secondary)) 0%, rgb(var(--color-secondary)) 100%);
+  }
+
+  /* Efectos de hover mejorados */
+  .hover-lift {
+    @apply transition-transform duration-200 hover:-translate-y-1 hover:shadow-medium;
+  }
+
+  .hover-scale {
+    @apply transition-transform duration-200 hover:scale-105;
   }
 }
