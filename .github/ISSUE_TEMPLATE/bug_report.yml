@@ -1,0 +1,109 @@
+name: 🐛 Bug Report
+description: Reportar un error o problema en el sistema
+title: "🐛 [BUG]: "
+labels: ["🐛 bug", "🔴 high"]
+assignees:
+  - Charly-dena
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Gracias por reportar este bug! Tu reporte nos ayuda a mejorar la calidad del sistema.
+
+  - type: dropdown
+    id: module
+    attributes:
+      label: 📦 Módulo Afectado
+      description: ¿En qué módulo encontraste el bug?
+      options:
+        - 🔵 Liquidaciones
+        - 🟢 Novedades  
+        - 🟡 Componentes Compartidos
+        - 🟣 Core/Base
+        - 🌐 API/Servicios
+        - 🎨 UI/UX
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: ⚠️ Severidad
+      description: ¿Qué tan grave es este bug?
+      options:
+        - 🔴 Crítico - Sistema no funciona
+        - 🟠 Alto - Funcionalidad principal afectada
+        - 🟡 Medio - Funcionalidad secundaria afectada
+        - 🟢 Bajo - Problema cosmético o menor
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 🐛 Descripción del Bug
+      description: Describe claramente qué está pasando
+      placeholder: "Ej: Al intentar crear una nueva liquidación, el formulario no se envía y no muestra mensaje de error"
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps_to_reproduce
+    attributes:
+      label: 🔄 Pasos para Reproducir
+      description: Pasos detallados para reproducir el error
+      placeholder: |
+        1. Ir a la página de liquidaciones
+        2. Hacer clic en "Nueva Liquidación" 
+        3. Llenar el formulario con datos válidos
+        4. Hacer clic en "Guardar"
+        5. Ver que no pasa nada
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected_behavior
+    attributes:
+      label: ✅ Comportamiento Esperado
+      description: ¿Qué debería pasar?
+      placeholder: "El formulario debería guardarse y mostrar mensaje de éxito"
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual_behavior
+    attributes:
+      label: ❌ Comportamiento Actual
+      description: ¿Qué está pasando en realidad?
+      placeholder: "El formulario no se envía y no hay feedback visual"
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: 📱 Ambiente
+      description: Información del ambiente donde ocurre el error
+      value: |
+        - **Browser:** Chrome/Firefox/Safari
+        - **Versión:** 
+        - **OS:** Windows/macOS/Linux
+        - **Resolución:** 1920x1080 / Mobile
+        - **URL:** https://...
+    validations:
+      required: true
+
+  - type: textarea
+    id: console_errors
+    attributes:
+      label: 🔍 Errores en Console
+      description: Si hay errores en la consola del browser, cópialos aquí
+      render: shell
+      placeholder: "Console errors, network errors, etc."
+
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: 📝 Contexto Adicional
+      description: Screenshots, logs, información adicional
+      placeholder: "Screenshots, video, logs del servidor, etc."

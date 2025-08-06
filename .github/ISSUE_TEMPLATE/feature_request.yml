@@ -1,0 +1,83 @@
+name: ✨ Feature Request
+description: Solicitar nueva funcionalidad para el sistema
+title: "✨ [FEATURE]: "
+labels: ["✨ feature", "🚀 ready"]
+assignees:
+  - Charly-dena
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Gracias por contribuir al proyecto NovedadesLiquidacion! 
+        Usa este template para solicitar nuevas funcionalidades.
+
+  - type: dropdown
+    id: module
+    attributes:
+      label: 📦 Módulo
+      description: ¿A qué módulo pertenece esta funcionalidad?
+      options:
+        - 🔵 Liquidaciones (Fase 1)
+        - 🟢 Novedades (Fase 2)
+        - 🟡 Componentes Compartidos
+        - 🟣 Core/Arquitectura
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: 🎯 Prioridad
+      description: ¿Qué prioridad tiene esta funcionalidad?
+      options:
+        - 🔴 Alta - Crítico para MVP
+        - 🟠 Media - Importante
+        - 🟢 Baja - Nice to have
+    validations:
+      required: true
+
+  - type: textarea
+    id: objective
+    attributes:
+      label: 🎯 Objetivo
+      description: Describe claramente qué funcionalidad necesitas
+      placeholder: "Ej: Necesito un filtro de fecha en el grid de liquidaciones para buscar por rango de fechas"
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: 📋 Criterios de Aceptación
+      description: Lista los criterios que debe cumplir esta funcionalidad
+      placeholder: |
+        - [ ] Criterio 1
+        - [ ] Criterio 2
+        - [ ] Criterio 3
+    validations:
+      required: true
+
+  - type: textarea
+    id: design_mockup
+    attributes:
+      label: 🎨 Diseño/Mockup
+      description: Comparte enlaces o describe el diseño esperado
+      placeholder: "Enlace a mockup, descripción del diseño, o referencia visual"
+
+  - type: textarea
+    id: technical_considerations
+    attributes:
+      label: 🔧 Consideraciones Técnicas
+      description: Aspectos técnicos importantes a considerar
+      placeholder: |
+        - APIs involucradas
+        - Dependencias
+        - Validaciones requeridas
+        - Performance considerations
+
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: 📝 Contexto Adicional
+      description: Cualquier información adicional relevante
+      placeholder: "Screenshots, enlaces, ejemplos, etc."

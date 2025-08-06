@@ -1,0 +1,9 @@
+node_modules
+dist
+build
+coverage
+*.md
+*.svg
+*.ejs
+*.html
+public
