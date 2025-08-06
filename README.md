@@ -32,7 +32,7 @@ Sistema de gestión de liquidaciones de sueldos con arquitectura evolutiva para 
 
 | Componente | Tecnología | Propósito |
 |------------|------------|-----------|
-| **Frontend** | React 18 + TypeScript + Vite | Interfaz de usuario |
+| **Frontend** | React 19 + TypeScript + Vite | Interfaz de usuario |
 | **Estilos** | TailwindCSS | Sistema de diseño |
 | **Backend** | Node.js | Proxy/Cliente para ApiIdeafix |
 | **APIs** | Servicios `/idx/*` (ApiIdeafix) | Datos de liquidaciones |
@@ -87,7 +87,10 @@ NovedadesLiquidacion/
 │   └── 📄 package.json
 ├── 📂 docs/                    # Documentación
 │   ├── 📋 PLAN_REFORMULADO.md
-│   └── 📊 ANALISIS_INICIAL_NOVEDADES.md
+│   ├── 📊 ANALISIS_INICIAL_NOVEDADES.md
+│   ├── 🤝 CONTRIBUTING.md
+│   └── 📋 SETUP_PROJECT_BOARD.md
+├── 📊 PROJECT_STATUS.md        # Estado y avance del proyecto
 └── 📄 README.md
 ```
 
@@ -104,9 +107,9 @@ NovedadesLiquidacion/
 ```bash
 # Clonar repositorio
 git clone https://github.com/Charly-dena/NovedadesLiquidacion.git
-cd NovedadesLiquidacion
+cd NovedadesLiquidacion/frontend
 
-# Instalar dependencias (cuando esté listo)
+# Instalar dependencias
 npm install
 
 # Ejecutar en desarrollo
@@ -118,16 +121,18 @@ npm run dev
 ## 📋 Roadmap
 
 ### ✅ Completado
-- [x] Análisis de requerimientos
-- [x] Planificación arquitectónica  
-- [x] Setup de repositorio y documentación
+- [x] Análisis de requerimientos y planificación arquitectónica
+- [x] Setup de repositorio y documentación completa
+- [x] **Issue #5:** Setup React + Vite + TypeScript ✅
 
-### 🔄 En Progreso
-- [ ] Setup React + Vite + Tailwind
-- [ ] Layout base y navegación
-- [ ] Integración con APIs ApiIdeafix
+### 🔄 En Progreso - Sprint 1 (Semana 1)
+- [ ] **Issue #6:** Configurar TailwindCSS + Tema Base
+- [ ] **Issue #7:** Layout base y navegación responsive
+- [ ] **Issue #8:** React Router + rutas modulares
+- [ ] **Issue #9:** Servicios API base + conexión ApiIdeafix
+- [ ] **Issue #10:** Componentes UI compartidos
 
-### 📅 Próximos Pasos
+### 📅 Próximos Pasos - Sprint 2-3
 - [ ] Grid de liquidaciones funcional
 - [ ] CRUD completo con validaciones
 - [ ] Sistema de filtros avanzados
@@ -139,24 +144,27 @@ npm run dev
 
 | Documento | Descripción |
 |-----------|-------------|
+| [📊 Estado del Proyecto](PROJECT_STATUS.md) | Estado detallado y métricas de avance |
 | [📋 Plan Reformulado](docs/PLAN_REFORMULADO.md) | Estrategia evolutiva y arquitectura |
 | [📊 Análisis Inicial](docs/ANALISIS_INICIAL_NOVEDADES.md) | Investigación de novedades (Fase 2) |
-| [🚀 Issue #1](https://github.com/Charly-dena/NovedadesLiquidacion/issues/1) | Plan evolutivo detallado |
+| [🤝 Guía de Contribución](docs/CONTRIBUTING.md) | Flujo de desarrollo y convenciones |
+| [📋 Setup Project Board](docs/SETUP_PROJECT_BOARD.md) | Configuración del tablero Kanban |
+| [🚀 Issues y Planning](https://github.com/Charly-dena/NovedadesLiquidacion/issues) | Seguimiento detallado del desarrollo |
 
 ---
 
 ## 🎯 Criterios de Éxito MVP
 
 ### Funcionales
-- ✅ Listado de liquidaciones con filtros
-- ✅ Crear/editar liquidaciones con validaciones  
-- ✅ Vista detalle según mockup
-- ✅ Estados controlados (Abierta/Cerrada)
+- ✅ Listado de liquidaciones con filtros por empresa/fecha/estado
+- ✅ Crear/editar liquidaciones con validaciones completas
+- ✅ Vista detalle según mockup proporcionado
+- ✅ Estados controlados (Abierta/Cerrada) con reglas de negocio
 
 ### Técnicos
 - ⚡ Tiempo de carga < 3 segundos
-- 📱 Responsive design
-- 🔒 Validaciones completas
+- 📱 Responsive design mobile-first
+- 🔒 Validaciones frontend + backend
 - 🏗️ Arquitectura escalable para Fase 2
 
 ---
@@ -170,15 +178,22 @@ npm run dev
 - ✏️ Edición solo permitida en estado "Abierta"
 
 ### Integración con ApiIdeafix
-> **IMPORTANTE:** No se persisten datos localmente. Todo a través de servicios web.
+> **IMPORTANTE:** No se persisten datos localmente. Todo a través de servicios web según especificación original.
+
+**Campos de formulario según API:**
+- **Empresa:** Combo desde `/idx/emps`
+- **Tipo de Liquidación:** Combo desde `/idx/tliq`
+- **Fechas:** Validaciones automáticas (valor contable, liquidación, último depósito, pago)
+- **Estados:** Control de workflow Abierta → Cerrada (irreversible)
 
 ---
 
 ## 📞 Contacto y Contribución
 
 - **Issues:** [GitHub Issues](https://github.com/Charly-dena/NovedadesLiquidacion/issues)
-- **Documentación:** Ver carpeta `/docs/`
-- **Estado:** Seguir progreso en Issues y Projects
+- **Project Board:** Ver docs/SETUP_PROJECT_BOARD.md para configuración
+- **Documentación:** Ver carpeta `/docs/` para guías completas
+- **Estado:** Seguir progreso en [PROJECT_STATUS.md](PROJECT_STATUS.md)
 
 ---
 
