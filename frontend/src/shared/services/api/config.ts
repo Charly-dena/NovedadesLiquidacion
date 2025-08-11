@@ -14,6 +14,7 @@ export const API_CONFIG = {
     LIQUIDACIONES: '/idx/liq',
     EMPRESAS: '/idx/emps', 
     TIPOS_LIQUIDACION: '/idx/tliq',
+    COMBO_EMPS: '/idx/combo/emps',
   },
   
   // Headers por defecto
@@ -53,13 +54,15 @@ export const HTTP_STATUS = {
 /**
  * Tipos de errores de API
  */
-export enum ApiErrorType {
-  NETWORK_ERROR = 'NETWORK_ERROR',
-  TIMEOUT_ERROR = 'TIMEOUT_ERROR',
-  SERVER_ERROR = 'SERVER_ERROR',
-  CLIENT_ERROR = 'CLIENT_ERROR',
-  VALIDATION_ERROR = 'VALIDATION_ERROR',
-  UNAUTHORIZED_ERROR = 'UNAUTHORIZED_ERROR',
-  FORBIDDEN_ERROR = 'FORBIDDEN_ERROR',
-  NOT_FOUND_ERROR = 'NOT_FOUND_ERROR',
-}
+export const ApiErrorType = {
+  NETWORK_ERROR: 'NETWORK_ERROR',
+  TIMEOUT_ERROR: 'TIMEOUT_ERROR',
+  SERVER_ERROR: 'SERVER_ERROR',
+  CLIENT_ERROR: 'CLIENT_ERROR',
+  VALIDATION_ERROR: 'VALIDATION_ERROR',
+  UNAUTHORIZED_ERROR: 'UNAUTHORIZED_ERROR',
+  FORBIDDEN_ERROR: 'FORBIDDEN_ERROR',
+  NOT_FOUND_ERROR: 'NOT_FOUND_ERROR',
+} as const;
+
+export type ApiErrorType = typeof ApiErrorType[keyof typeof ApiErrorType];

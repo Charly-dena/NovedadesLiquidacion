@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Test /idx/liq</title>
+  <style>
+    body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Noto Sans, Ubuntu, Cantarell, Helvetica Neue, Arial; padding: 16px; }
+    pre { background: #0b1021; color: #e2e8f0; padding: 12px; border-radius: 8px; overflow: auto; }
+    code { white-space: pre-wrap; word-break: break-word; }
+    .muted { color: #64748b; }
+  </style>
+</head>
+<body>
+  <h1>Prueba directa: GET http://localhost:3001/idx/liq</h1>
+  <p class="muted">Usa esta página para ver el JSON crudo que devuelve tu backend y confirmar el formato.</p>
+
+  <div id="status">Consultando...</div>
+  <h2>Respuesta</h2>
+  <pre><code id="output"></code></pre>
+
+  <script>
+    const url = 'http://localhost:3001/idx/liq';
+    const output = document.getElementById('output');
+    const status = document.getElementById('status');
+
+    function show(obj) {
+      try {
+        output.textContent = JSON.stringify(obj, null, 2);
+      } catch (e) {
+        output.textContent = String(obj);
+      }
+    }
+
+    async function run() {
+      try {
+        status.textContent = 'GET ' + url;
+        const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+        const text = await res.text();
+        let data;
+        try { data = JSON.parse(text); } catch (e) { data = text; }
+        status.textContent = 'HTTP ' + res.status + ' ' + res.statusText;
+        show(data);
+        console.log('🔎 /idx/liq raw response:', data);
+      } catch (err) {
+        status.textContent = 'Error de red: ' + (err && err.message ? err.message : err);
+        show({ error: String(err) });
+        console.error(err);
+      }
+    }
+
+    run();
+  </script>
+</body>
+</html>

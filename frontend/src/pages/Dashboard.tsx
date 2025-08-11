@@ -1,231 +1,526 @@
-import { useDashboard, useLiquidacionesRecientes, useAlertas } from '@/shared/hooks';
+import { useState } from 'react';
 
 export function Dashboard() {
-  const { stats, actividad, loading, error } = useDashboard();
-  const { liquidaciones: liquidacionesRecientes, loading: loadingRecientes } = useLiquidacionesRecientes(3);
-  const { alertasNoLeidas } = useAlertas();
+  const [selectedPeriod, setSelectedPeriod] = useState('mes');
+  const [notifications, setNotifications] = useState([
+    { id: 1, type: 'warning', message: '3 liquidaciones pendientes de revisión', time: '2 min ago', unread: true },
+    { id: 2, type: 'success', message: 'Liquidación LC-2024-001 procesada correctamente', time: '1 hora ago', unread: true },
+    { id: 3, type: 'info', message: 'Respaldo automático completado', time: '3 horas ago', unread: false }
+  ]);
 
-  if (error) {
-    return (
-      <div className="space-y-6">
-        <div className="card">
-          <div className="text-center py-8">
-            <div className="text-danger-600 mb-4">
-              <svg className="h-12 w-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+  const dismissNotification = (id: number) => {
+    setNotifications(prev => prev.filter(notif => notif.id !== id));
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div>
+          <h1 style={{ fontSize: '28px', fontWeight: '700', color: '#1f2937', margin: '0' }}>Dashboard</h1>
+          <p style={{ color: '#6b7280', margin: '4px 0 0 0', fontSize: '16px' }}>
+            Bienvenido al sistema de gestión de liquidaciones
+          </p>
+        </div>
+        
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+          <select 
+            value={selectedPeriod} 
+            onChange={(e) => setSelectedPeriod(e.target.value)}
+            style={{
+              padding: '8px 12px',
+              border: '1px solid #d1d5db',
+              borderRadius: '8px',
+              fontSize: '14px',
+              outline: 'none'
+            }}
+          >
+            <option value="dia">Hoy</option>
+            <option value="semana">Esta semana</option>
+            <option value="mes">Este mes</option>
+            <option value="trimestre">Trimestre</option>
+          </select>
+          
+          <button className="btn btn-primary" style={{ fontSize: '14px' }}>
+            <span style={{ marginRight: '8px' }}>+</span>
+            Nueva Liquidación
+          </button>
+        </div>
+      </div>
+
+      {/* Notifications Bar */}
+      {notifications.filter(n => n.unread).length > 0 && (
+        <div style={{
+          backgroundColor: '#dbeafe',
+          borderLeft: '4px solid #3b82f6',
+          padding: '16px',
+          borderRadius: '8px'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '16px' }}>🔔</span>
+              <span style={{ color: '#1e40af', fontWeight: '500' }}>
+                Tienes {notifications.filter(n => n.unread).length} notificaciones pendientes
+              </span>
             </div>
-            <h3 className="text-lg font-semibold text-secondary-900 mb-2">Error al cargar dashboard</h3>
-            <p className="text-secondary-600 mb-4">{error}</p>
             <button 
-              onClick={() => window.location.reload()}
-              className="btn btn-primary"
+              onClick={() => setNotifications(prev => prev.map(n => ({...n, unread: false})))}
+              style={{
+                color: '#2563eb',
+                fontSize: '14px',
+                fontWeight: '500',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer'
+              }}
             >
-              Reintentar
+              Marcar todas como leídas
             </button>
           </div>
         </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-6">
-      {/* Page Header */}
-      <div className="flex items-center justify-between border-b border-secondary-200 pb-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-secondary-900">Dashboard</h1>
-          <p className="text-secondary-600 mt-1">
-            Vista general del sistema de liquidaciones
-          </p>
-        </div>
-        {alertasNoLeidas > 0 && (
-          <div className="flex items-center space-x-2 text-warning-600">
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                d="M15 17h5l-5-5V9c0-3-2-5-5-5s-5 2-5 5v3l-5 5h5m5 0v1a3 3 0 11-6 0v-1m6 0H9" />
-            </svg>
-            <span className="text-sm font-medium">{alertasNoLeidas} alertas</span>
-          </div>
-        )}
-      </div>
+      )}
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="card">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <div className="h-8 w-8 bg-primary-100 rounded-lg flex items-center justify-center">
-                <svg className="h-5 w-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                    d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                </svg>
-              </div>
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+        gap: '20px'
+      }}>
+        {/* Total Liquidaciones */}
+        <div className="card" style={{
+          transition: 'transform 0.2s, box-shadow 0.2s',
+          cursor: 'pointer'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'translateY(-2px)';
+          e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1)';
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <p style={{ fontSize: '14px', color: '#6b7280', margin: '0 0 8px 0', fontWeight: '500' }}>
+                Total Liquidaciones
+              </p>
+              <p style={{ fontSize: '32px', fontWeight: '700', color: '#1f2937', margin: '0 0 4px 0' }}>
+                156
+              </p>
+              <p style={{ fontSize: '12px', color: '#16a34a', margin: '0', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span>📈</span> +12% vs mes anterior
+              </p>
             </div>
-            <div className="ml-4">
-              <dt className="text-sm font-medium text-secondary-600">Liquidaciones</dt>
-              <dd className="text-2xl font-semibold text-secondary-900">
-                {loading ? (
-                  <div className="loading-spinner h-6 w-6" />
-                ) : (
-                  stats?.totalLiquidaciones || 0
-                )}
-              </dd>
-            </div>
-          </div>
-        </div>
-
-        <div className="card">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <div className="h-8 w-8 bg-success-100 rounded-lg flex items-center justify-center">
-                <svg className="h-5 w-5 text-success-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                    d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-            </div>
-            <div className="ml-4">
-              <dt className="text-sm font-medium text-secondary-600">Cerradas</dt>
-              <dd className="text-2xl font-semibold text-secondary-900">
-                {loading ? (
-                  <div className="loading-spinner h-6 w-6" />
-                ) : (
-                  stats?.liquidacionesCerradas || 0
-                )}
-              </dd>
+            <div style={{
+              width: '48px',
+              height: '48px',
+              backgroundColor: '#dbeafe',
+              borderRadius: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <span style={{ fontSize: '20px' }}>📊</span>
             </div>
           </div>
         </div>
 
-        <div className="card">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <div className="h-8 w-8 bg-warning-100 rounded-lg flex items-center justify-center">
-                <svg className="h-5 w-5 text-warning-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
+        {/* Liquidaciones Cerradas */}
+        <div className="card" style={{
+          transition: 'transform 0.2s, box-shadow 0.2s',
+          cursor: 'pointer'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'translateY(-2px)';
+          e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1)';
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <p style={{ fontSize: '14px', color: '#6b7280', margin: '0 0 8px 0', fontWeight: '500' }}>
+                Cerradas
+              </p>
+              <p style={{ fontSize: '32px', fontWeight: '700', color: '#1f2937', margin: '0 0 4px 0' }}>
+                89
+              </p>
+              <p style={{ fontSize: '12px', color: '#6b7280', margin: '0' }}>
+                57% del total
+              </p>
             </div>
-            <div className="ml-4">
-              <dt className="text-sm font-medium text-secondary-600">Abiertas</dt>
-              <dd className="text-2xl font-semibold text-secondary-900">
-                {loading ? (
-                  <div className="loading-spinner h-6 w-6" />
-                ) : (
-                  stats?.liquidacionesAbiertas || 0
-                )}
-              </dd>
+            <div style={{
+              width: '48px',
+              height: '48px',
+              backgroundColor: '#dcfce7',
+              borderRadius: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <span style={{ fontSize: '20px' }}>✅</span>
             </div>
           </div>
         </div>
 
-        <div className="card">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <div className="h-8 w-8 bg-secondary-100 rounded-lg flex items-center justify-center">
-                <svg className="h-5 w-5 text-secondary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                    d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                </svg>
-              </div>
+        {/* Liquidaciones Abiertas */}
+        <div className="card" style={{
+          transition: 'transform 0.2s, box-shadow 0.2s',
+          cursor: 'pointer'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'translateY(-2px)';
+          e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1)';
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <p style={{ fontSize: '14px', color: '#6b7280', margin: '0 0 8px 0', fontWeight: '500' }}>
+                Abiertas
+              </p>
+              <p style={{ fontSize: '32px', fontWeight: '700', color: '#1f2937', margin: '0 0 4px 0' }}>
+                67
+              </p>
+              <p style={{ fontSize: '12px', color: '#d97706', margin: '0', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span>⏰</span> 3 vencen hoy
+              </p>
             </div>
-            <div className="ml-4">
-              <dt className="text-sm font-medium text-secondary-600">Empresas</dt>
-              <dd className="text-2xl font-semibold text-secondary-900">
-                {loading ? (
-                  <div className="loading-spinner h-6 w-6" />
-                ) : (
-                  stats?.totalEmpresas || 0
-                )}
-              </dd>
+            <div style={{
+              width: '48px',
+              height: '48px',
+              backgroundColor: '#fef3c7',
+              borderRadius: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <span style={{ fontSize: '20px' }}>⏳</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Empresas Activas */}
+        <div className="card" style={{
+          transition: 'transform 0.2s, box-shadow 0.2s',
+          cursor: 'pointer'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'translateY(-2px)';
+          e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1)';
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <p style={{ fontSize: '14px', color: '#6b7280', margin: '0 0 8px 0', fontWeight: '500' }}>
+                Empresas Activas
+              </p>
+              <p style={{ fontSize: '32px', fontWeight: '700', color: '#1f2937', margin: '0 0 4px 0' }}>
+                12
+              </p>
+              <p style={{ fontSize: '12px', color: '#2563eb', margin: '0' }}>
+                2 nuevas este mes
+              </p>
+            </div>
+            <div style={{
+              width: '48px',
+              height: '48px',
+              backgroundColor: '#e0e7ff',
+              borderRadius: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <span style={{ fontSize: '20px' }}>🏢</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Quick Actions */}
-      <div className="card">
-        <div className="card-header">
-          <h2 className="text-lg font-semibold text-secondary-900">Acciones Rápidas</h2>
+      {/* Main Content Grid */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
+        gap: '24px'
+      }}>
+        {/* Quick Actions */}
+        <div className="card">
+          <div className="card-header">
+            <h2 style={{ fontSize: '18px', fontWeight: '600', color: '#1f2937', margin: '0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span>⚡</span> Acciones Rápidas
+            </h2>
+          </div>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+            gap: '12px'
+          }}>
+            <button className="btn btn-primary" style={{
+              padding: '16px',
+              height: 'auto',
+              flexDirection: 'column',
+              alignItems: 'flex-start',
+              textAlign: 'left',
+              gap: '8px'
+            }}>
+              <span style={{ fontSize: '18px' }}>➕</span>
+              <span style={{ fontWeight: '600', fontSize: '14px' }}>Nueva Liquidación</span>
+              <span style={{ fontSize: '12px', opacity: '0.8' }}>Crear liquidación para una empresa</span>
+            </button>
+            
+            <button className="btn btn-secondary" style={{
+              padding: '16px',
+              height: 'auto',
+              flexDirection: 'column',
+              alignItems: 'flex-start',
+              textAlign: 'left',
+              gap: '8px'
+            }}>
+              <span style={{ fontSize: '18px' }}>📊</span>
+              <span style={{ fontWeight: '600', fontSize: '14px' }}>Ver Reportes</span>
+              <span style={{ fontSize: '12px', opacity: '0.8' }}>Análisis y estadísticas</span>
+            </button>
+            
+            <button className="btn btn-secondary" style={{
+              padding: '16px',
+              height: 'auto',
+              flexDirection: 'column',
+              alignItems: 'flex-start',
+              textAlign: 'left',
+              gap: '8px'
+            }}>
+              <span style={{ fontSize: '18px' }}>🔍</span>
+              <span style={{ fontWeight: '600', fontSize: '14px' }}>Buscar Liquidación</span>
+              <span style={{ fontSize: '12px', opacity: '0.8' }}>Por número o empresa</span>
+            </button>
+            
+            <button className="btn btn-secondary" style={{
+              padding: '16px',
+              height: 'auto',
+              flexDirection: 'column',
+              alignItems: 'flex-start',
+              textAlign: 'left',
+              gap: '8px'
+            }}>
+              <span style={{ fontSize: '18px' }}>⚙️</span>
+              <span style={{ fontWeight: '600', fontSize: '14px' }}>Configuración</span>
+              <span style={{ fontSize: '12px', opacity: '0.8' }}>Parámetros del sistema</span>
+            </button>
+          </div>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <button className="btn btn-primary">
-            <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Nueva Liquidación
-          </button>
-          <button className="btn btn-secondary">
-            <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-            </svg>
-            Ver Reportes
-          </button>
-          <button className="btn btn-secondary">
-            <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            Configuración
-          </button>
+
+        {/* Recent Activity */}
+        <div className="card">
+          <div className="card-header">
+            <h2 style={{ fontSize: '18px', fontWeight: '600', color: '#1f2937', margin: '0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span>🕐</span> Actividad Reciente
+            </h2>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '12px',
+              padding: '12px',
+              borderRadius: '8px',
+              transition: 'background-color 0.2s',
+              cursor: 'pointer'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
+              <div style={{
+                width: '32px',
+                height: '32px',
+                backgroundColor: '#dcfce7',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: '0'
+              }}>
+                <span style={{ fontSize: '14px' }}>✅</span>
+              </div>
+              <div style={{ minWidth: '0', flex: '1' }}>
+                <p style={{ fontSize: '14px', fontWeight: '500', color: '#1f2937', margin: '0' }}>
+                  Liquidación procesada exitosamente
+                </p>
+                <p style={{ fontSize: '13px', color: '#6b7280', margin: '2px 0 0 0' }}>
+                  LC-2024-001 • Empresa ABC Corp
+                </p>
+                <p style={{ fontSize: '12px', color: '#9ca3af', margin: '4px 0 0 0' }}>
+                  Hace 2 horas
+                </p>
+              </div>
+            </div>
+            
+            <div style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '12px',
+              padding: '12px',
+              borderRadius: '8px',
+              transition: 'background-color 0.2s',
+              cursor: 'pointer'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
+              <div style={{
+                width: '32px',
+                height: '32px',
+                backgroundColor: '#dbeafe',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: '0'
+              }}>
+                <span style={{ fontSize: '14px' }}>➕</span>
+              </div>
+              <div style={{ minWidth: '0', flex: '1' }}>
+                <p style={{ fontSize: '14px', fontWeight: '500', color: '#1f2937', margin: '0' }}>
+                  Nueva liquidación creada
+                </p>
+                <p style={{ fontSize: '13px', color: '#6b7280', margin: '2px 0 0 0' }}>
+                  LC-2024-002 • TechStart SRL
+                </p>
+                <p style={{ fontSize: '12px', color: '#9ca3af', margin: '4px 0 0 0' }}>
+                  Hace 4 horas
+                </p>
+              </div>
+            </div>
+            
+            <div style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '12px',
+              padding: '12px',
+              borderRadius: '8px',
+              transition: 'background-color 0.2s',
+              cursor: 'pointer'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
+              <div style={{
+                width: '32px',
+                height: '32px',
+                backgroundColor: '#fef3c7',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: '0'
+              }}>
+                <span style={{ fontSize: '14px' }}>✏️</span>
+              </div>
+              <div style={{ minWidth: '0', flex: '1' }}>
+                <p style={{ fontSize: '14px', fontWeight: '500', color: '#1f2937', margin: '0' }}>
+                  Liquidación modificada
+                </p>
+                <p style={{ fontSize: '13px', color: '#6b7280', margin: '2px 0 0 0' }}>
+                  LC-2024-003 • Industrial Mendoza SA
+                </p>
+                <p style={{ fontSize: '12px', color: '#9ca3af', margin: '4px 0 0 0' }}>
+                  Ayer
+                </p>
+              </div>
+            </div>
+            
+            <div style={{ paddingTop: '8px' }}>
+              <button style={{
+                fontSize: '14px',
+                color: '#2563eb',
+                fontWeight: '500',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer'
+              }}>
+                Ver toda la actividad →
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Recent Activity */}
-      <div className="card">
-        <div className="card-header">
-          <h2 className="text-lg font-semibold text-secondary-900">Actividad Reciente</h2>
-        </div>
-        <div className="space-y-4">
-          {loading ? (
-            <div className="space-y-3">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="flex items-center space-x-4 animate-pulse">
-                  <div className="h-2 w-2 bg-secondary-300 rounded-full"></div>
-                  <div className="flex-1 space-y-1">
-                    <div className="h-4 bg-secondary-300 rounded w-3/4"></div>
-                    <div className="h-3 bg-secondary-200 rounded w-1/2"></div>
+      {/* Notifications Panel */}
+      {notifications.length > 0 && (
+        <div className="card">
+          <div className="card-header">
+            <h2 style={{ fontSize: '18px', fontWeight: '600', color: '#1f2937', margin: '0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span>🔔</span> Notificaciones
+            </h2>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {notifications.map((notification) => (
+              <div 
+                key={notification.id} 
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  justifyContent: 'space-between',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  borderLeft: '4px solid',
+                  borderLeftColor: 
+                    notification.type === 'warning' ? '#f59e0b' :
+                    notification.type === 'success' ? '#10b981' : '#3b82f6',
+                  backgroundColor: 
+                    notification.type === 'warning' ? '#fffbeb' :
+                    notification.type === 'success' ? '#f0fdf4' : '#eff6ff',
+                  border: notification.unread ? '2px solid #93c5fd' : 'none'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                  <div style={{
+                    width: '24px',
+                    height: '24px',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: 
+                      notification.type === 'warning' ? '#fbbf24' :
+                      notification.type === 'success' ? '#34d399' : '#60a5fa'
+                  }}>
+                    <span style={{ fontSize: '12px', color: 'white' }}>
+                      {notification.type === 'warning' ? '⚠️' : 
+                       notification.type === 'success' ? '✅' : 'ℹ️'}
+                    </span>
+                  </div>
+                  <div>
+                    <p style={{ fontSize: '14px', fontWeight: '500', color: '#1f2937', margin: '0' }}>
+                      {notification.message}
+                    </p>
+                    <p style={{ fontSize: '12px', color: '#6b7280', margin: '4px 0 0 0' }}>
+                      {notification.time}
+                    </p>
                   </div>
                 </div>
-              ))}
-            </div>
-          ) : actividad.length === 0 ? (
-            <div className="text-center py-8 text-secondary-500">
-              <svg className="h-8 w-8 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                  d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 009.586 13H7" />
-              </svg>
-              <p className="text-sm">No hay actividad reciente</p>
-            </div>
-          ) : (
-            actividad.map((item) => (
-              <div key={item.id} className="flex items-center space-x-4">
-                <div className={`h-2 w-2 rounded-full ${
-                  item.tipo === 'liquidacion_cerrada' ? 'bg-success-500' :
-                  item.tipo === 'liquidacion_creada' ? 'bg-primary-500' :
-                  'bg-warning-500'
-                }`}></div>
-                <div className="flex-1">
-                  <p className="text-sm text-secondary-900">{item.descripcion}</p>
-                  <p className="text-xs text-secondary-500">
-                    {new Date(item.fecha).toLocaleDateString('es-AR', {
-                      day: '2-digit',
-                      month: 'short',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
-                  </p>
-                </div>
+                <button 
+                  onClick={() => dismissNotification(notification.id)}
+                  style={{
+                    color: '#9ca3af',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: '16px',
+                    padding: '0',
+                    width: '20px',
+                    height: '20px'
+                  }}
+                >
+                  ×
+                </button>
               </div>
-            ))
-          )}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

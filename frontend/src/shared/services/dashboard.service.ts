@@ -1,5 +1,4 @@
 import { apiClient } from './api/client';
-import { API_CONFIG } from './api/config';
 import type { DashboardStats } from '@/shared/types/api';
 
 /**

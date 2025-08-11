@@ -56,6 +56,29 @@ export function useEmpresasActivas() {
 }
 
 /**
+ * Hook para combo de empresas (para selects)
+ */
+export function useEmpresasCombo() {
+  const {
+    data: empresas,
+    loading,
+    error,
+    execute: refetch,
+  } = useAsync<Array<{ id: string; nombre: string; razonSocial?: string }>>(
+    () => empresasService.getCombo(),
+    [],
+    true
+  );
+
+  return {
+    empresas: empresas || [],
+    loading,
+    error,
+    refetch,
+  };
+}
+
+/**
  * Hook para obtener empresa individual
  */
 export function useEmpresa(id: string | undefined) {

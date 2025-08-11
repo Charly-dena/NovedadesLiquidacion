@@ -6,18 +6,30 @@ import { Sidebar } from './Sidebar';
 export function MainLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  console.log('MainLayout sidebarOpen:', sidebarOpen); // Debug
+
+  const toggleSidebar = () => {
+    console.log('Toggling sidebar, was:', sidebarOpen); // Debug
+    setSidebarOpen(!sidebarOpen);
+  };
+
+  const closeSidebar = () => {
+    console.log('Closing sidebar'); // Debug
+    setSidebarOpen(false);
+  };
+
   return (
     <div className="h-screen bg-secondary-50 flex overflow-hidden">
-      {/* Sidebar */}
+      {/* Hamburger Sidebar - Always overlay, never takes layout space */}
       <Sidebar 
         isOpen={sidebarOpen} 
-        onClose={() => setSidebarOpen(false)} 
+        onClose={closeSidebar} 
       />
 
-      {/* Main Content Area */}
+      {/* Main Content Area - Full width always */}
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header 
-          onMenuClick={() => setSidebarOpen(!sidebarOpen)} 
+          onMenuClick={toggleSidebar} 
         />
         
         {/* Page Content */}
@@ -28,11 +40,12 @@ export function MainLayout() {
         </main>
       </div>
 
-      {/* Mobile Sidebar Overlay */}
+      {/* Sidebar Overlay for all screen sizes */}
       {sidebarOpen && (
         <div 
-          className="fixed inset-0 bg-black bg-opacity-25 z-40 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
+          className="fixed inset-0 bg-black bg-opacity-50"
+          style={{ zIndex: 45 }}
+          onClick={closeSidebar}
         />
       )}
     </div>
