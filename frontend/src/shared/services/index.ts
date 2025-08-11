@@ -1,6 +1,7 @@
 // Exportar servicios
 export { liquidacionesService } from './liquidaciones.service';
 export { empresasService } from './empresas.service';
+export { bancosService } from './bancos.service';
 export { tiposLiquidacionService } from './tipos-liquidacion.service';
 export { dashboardService } from './dashboard.service';
 

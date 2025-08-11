@@ -1,159 +1,560 @@
+import { useEffect, useMemo, useState } from 'react';
+import { liquidacionesService, empresasService, bancosService } from '@/shared/services';
+
 export function LiquidacionDetail() {
-  return (
-    <div className="space-y-6">
-      {/* Page Header */}
-      <div className="flex items-center justify-between border-b border-secondary-200 pb-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-secondary-900">Liquidación #2024001</h1>
-          <p className="text-secondary-600 mt-1">
-            Empresa ABC - Enero 2024
+  const params = new URLSearchParams(window.location.search);
+  const nroliq = params.get('nroliq') || params.get('id') || '';
+  const [data, setData] = useState<Record<string, unknown> | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [validaciones, setValidaciones] = useState<{
+    fechasValidas: boolean;
+    estadoConsistente: boolean;
+    errores: string[];
+  } | null>(null);
+  const [metadatos, setMetadatos] = useState<{
+    ultimaConsulta: string;
+    tiempoRespuesta: number;
+  } | null>(null);
+  const [empresaData, setEmpresaData] = useState<Record<string, unknown> | null>(null);
+  const [bancoData, setBancoData] = useState<Record<string, unknown> | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        setValidaciones(null);
+        setMetadatos(null);
+        setEmpresaData(null);
+        setBancoData(null);
+        
+        // Debug logging
+        console.log('🔍 [LiquidacionDetail] Parámetros recibidos:', {
+          nroliq,
+          url: window.location.href,
+          searchParams: window.location.search,
+          allParams: Object.fromEntries(params.entries())
+        });
+        
+        if (nroliq) {
+          console.log('📡 [LiquidacionDetail] Consultando liquidación:', nroliq);
+          const resultado = await liquidacionesService.getDetallado(nroliq);
+          
+          console.log('📄 [LiquidacionDetail] Resultado obtenido:', {
+            data: resultado.data,
+            nroliqEncontrado: resultado.data ? ((resultado.data as any)?.nroliq ?? (resultado.data as any)?.liqnro) : null
+          });
+          
+          if (mounted) {
+            setData(resultado.data);
+            setValidaciones(resultado.validaciones);
+            setMetadatos(resultado.metadatos);
+            
+            if (!resultado.data) {
+              setError('Liquidación no encontrada');
+            } else {
+              // Cargar datos de empresa por código
+              const codigoEmpresa = (resultado.data as any)?.emp ?? (resultado.data as any)?.empresaId ?? (resultado.data as any)?.empresa?.id;
+              if (codigoEmpresa) {
+                console.log('🏢 [LiquidacionDetail] Cargando empresa con código:', codigoEmpresa);
+                try {
+                  const empresa = await empresasService.getByCodigo(codigoEmpresa);
+                  if (mounted) {
+                    setEmpresaData(empresa);
+                    console.log('🏢 [LiquidacionDetail] Datos de empresa cargados:', empresa);
+                  }
+                } catch (e) {
+                  console.error('💥 [LiquidacionDetail] Error al cargar empresa:', e);
+                }
+              }
+
+              // Cargar datos de banco por código
+              const codigoBanco = (resultado.data as any)?.bdep;
+              if (codigoBanco) {
+                console.log('🏦 [LiquidacionDetail] Cargando banco con código:', codigoBanco);
+                try {
+                  const banco = await bancosService.getByCodigo(codigoBanco);
+                  if (mounted) {
+                    setBancoData(banco);
+                    console.log('🏦 [LiquidacionDetail] Datos de banco cargados:', banco);
+                  }
+                } catch (e) {
+                  console.error('💥 [LiquidacionDetail] Error al cargar banco:', e);
+                }
+              }
+            }
+          }
+        } else {
+          console.log('❌ [LiquidacionDetail] No se recibió nroliq');
+        }
+      } catch (e: any) {
+        console.error('💥 [LiquidacionDetail] Error:', e);
+        if (mounted) {
+          setError(e?.message || 'Error al cargar la liquidación');
+        }
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [nroliq]);
+
+  // Valores calculados
+  const numeroLiquidacion = useMemo(() => {
+    return ((data as any)?.nroliq ?? (data as any)?.liqnro ?? nroliq) || '—';
+  }, [data, nroliq]);
+
+  const empresa = useMemo(() => {
+    const d: any = data || {};
+    return d?.empresa?.razonSocial || d?.razonSocial || d?.empresa?.nombre || d?.empresa || d?.emp || '—';
+  }, [data]);
+
+  const tipo = useMemo(() => {
+    const d: any = data || {};
+    return d?.tipoLiquidacion?.nombre || d?.tipo || d?.tliq || '—';
+  }, [data]);
+
+  const fliq = useMemo(() => {
+    const d: any = data || {};
+    return d?.fliq || '—';
+  }, [data]);
+
+  const fcieliq = useMemo(() => {
+    const d: any = data || {};
+    return d?.fcieliq || '—';
+  }, [data]);
+
+  const estado = useMemo(() => {
+    return fcieliq && String(fcieliq).trim().length > 0 ? 'Cerrada' : 'Abierta';
+  }, [fcieliq]);
+
+
+  if (loading) {
+    return (
+      <div style={{ padding: '40px 0', textAlign: 'center' }}>
+        <div className="card" style={{ maxWidth: '600px', margin: '0 auto' }}>
+          <h2 style={{ color: '#6b7280', margin: 0 }}>🔄 Cargando liquidación...</h2>
+          <p style={{ color: '#6b7280', margin: '10px 0 0 0' }}>
+            Obteniendo datos de la liquidación #{nroliq}
           </p>
         </div>
-        <div className="flex items-center space-x-3">
-          <span className="inline-flex px-3 py-1 text-sm font-medium rounded-full bg-warning-100 text-warning-800">
-            Abierta
-          </span>
-          <button className="btn btn-secondary">
-            <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-            </svg>
-            Editar
-          </button>
-          <button className="btn btn-success">
-            <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-            Cerrar Liquidación
-          </button>
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div style={{ padding: '40px 0', textAlign: 'center' }}>
+        <div className="card" style={{ maxWidth: '600px', margin: '0 auto' }}>
+          <h2 style={{ color: '#dc2626', margin: '0 0 16px 0' }}>
+            ⚠️ {error || 'Liquidación no encontrada'}
+          </h2>
+          <p style={{ color: '#6b7280', margin: '0 0 24px 0' }}>
+            {error ? 'Ocurrió un error al cargar los datos.' : `No se encontró la liquidación #${nroliq}`}
+          </p>
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+            <button 
+              onClick={() => window.history.back()} 
+              className="btn btn-secondary"
+            >
+              ← Volver
+            </button>
+            <button 
+              onClick={() => window.location.reload()} 
+              className="btn btn-primary"
+            >
+              🔄 Reintentar
+            </button>
+          </div>
         </div>
       </div>
+    );
+  }
 
-      {/* Liquidación Info */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Basic Info */}
-        <div className="card">
-          <div className="card-header">
-            <h2 className="text-lg font-semibold text-secondary-900">Información General</h2>
+  return (
+    <div style={{ backgroundColor: '#f8fafc', minHeight: '100vh', padding: '24px' }}>
+      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+        
+        {/* Header */}
+        <div className="card" style={{ marginBottom: '24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <button 
+                onClick={() => window.history.back()}
+                style={{
+                  padding: '8px',
+                  backgroundColor: '#f1f5f9',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center'
+                }}
+              >
+                ← 
+              </button>
+              
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '4px' }}>
+                  <h1 style={{ margin: '0', fontSize: '28px', fontWeight: '700', color: '#1f2937' }}>
+                    Liquidación #{numeroLiquidacion}
+                  </h1>
+                  {(data as any)?.titulo && (
+                    <span style={{ 
+                      fontSize: '20px', 
+                      fontWeight: '500', 
+                      color: '#6b7280',
+                      fontStyle: 'italic'
+                    }}>
+                      - {(data as any).titulo}
+                    </span>
+                  )}
+                  <span style={{
+                    padding: '4px 12px',
+                    borderRadius: '20px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    backgroundColor: estado === 'Abierta' ? '#fef3c7' : '#dcfce7',
+                    color: estado === 'Abierta' ? '#d97706' : '#16a34a',
+                    border: `1px solid ${estado === 'Abierta' ? '#fbbf24' : '#22c55e'}`
+                  }}>
+                    {estado === 'Abierta' ? '🔓' : '🔒'} {estado}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '14px', color: '#6b7280' }}>
+                  <span>🏢 {empresa}</span>
+                  <span>📅 {fliq}</span>
+                  <span>📄 {tipo}</span>
+                </div>
+              </div>
+            </div>
+            
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+              {estado === 'Abierta' && (
+                <>
+                  <button className="btn btn-secondary">
+                    ✏️ Editar
+                  </button>
+                  <button className="btn" style={{ backgroundColor: '#16a34a', color: 'white' }}>
+                    ✅ Cerrar Liquidación
+                  </button>
+                </>
+              )}
+            </div>
           </div>
-          <dl className="space-y-3">
-            <div>
-              <dt className="text-sm font-medium text-secondary-600">Número</dt>
-              <dd className="text-sm text-secondary-900">#2024001</dd>
+        </div>
+
+        {/* Alertas de Validación */}
+        {validaciones && validaciones.errores.length > 0 && (
+          <div className="card" style={{ 
+            marginBottom: '24px',
+            backgroundColor: '#fef3c7',
+            border: '1px solid #fbbf24'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+              <span style={{ fontSize: '20px' }}>⚠️</span>
+              <div>
+                <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', fontWeight: '600', color: '#d97706' }}>
+                  Advertencias de Validación
+                </h3>
+                <ul style={{ margin: '0', paddingLeft: '20px', color: '#b45309' }}>
+                  {validaciones.errores.map((error, index) => (
+                    <li key={index} style={{ marginBottom: '4px' }}>{error}</li>
+                  ))}
+                </ul>
+              </div>
             </div>
-            <div>
-              <dt className="text-sm font-medium text-secondary-600">Empresa</dt>
-              <dd className="text-sm text-secondary-900">Empresa ABC</dd>
+          </div>
+        )}
+
+        {/* Contenido Principal - Layout Horizontal */}
+        
+        {/* Fila 1: Información General + Estado y Configuración */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
+          
+          {/* Información General */}
+          <div className="card">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px' }}>
+              <span style={{ fontSize: '20px' }}>🏢</span>
+              <h2 style={{ margin: '0', fontSize: '20px', fontWeight: '600', color: '#1f2937' }}>
+                Información General
+              </h2>
             </div>
-            <div>
-              <dt className="text-sm font-medium text-secondary-600">Tipo</dt>
-              <dd className="text-sm text-secondary-900">Mensual</dd>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div>
+                <dt style={{ fontSize: '14px', fontWeight: '600', color: '#6b7280', marginBottom: '4px' }}>
+                  Empresa
+                </dt>
+                <dd style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937', margin: '0' }}>
+                  {empresa}
+                </dd>
+                {(empresaData?.descripcion || empresaData?.descrip || empresaData?.desc) && (
+                  <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px', fontStyle: 'italic' }}>
+                    {(empresaData.descripcion || empresaData.descrip || empresaData.desc) as string}
+                  </div>
+                )}
+              </div>
+              
+              <div>
+                <dt style={{ fontSize: '14px', fontWeight: '600', color: '#6b7280', marginBottom: '4px' }}>
+                  Tipo de Liquidación
+                </dt>
+                <dd style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937', margin: '0' }}>
+                  {tipo}
+                </dd>
+              </div>
+              
+              <div>
+                <dt style={{ fontSize: '14px', fontWeight: '600', color: '#6b7280', marginBottom: '4px' }}>
+                  Título
+                </dt>
+                <dd style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937', margin: '0' }}>
+                  {(data as any)?.titulo || 'Sin título especificado'}
+                </dd>
+              </div>
+              
+              <div>
+                <dt style={{ fontSize: '14px', fontWeight: '600', color: '#6b7280', marginBottom: '4px' }}>
+                  Forma de Pago
+                </dt>
+                <dd style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937', margin: '0' }}>
+                  {(data as any)?.formpag || (data as any)?.forpag || '—'}
+                </dd>
+              </div>
+              
+              <div>
+                <dt style={{ fontSize: '14px', fontWeight: '600', color: '#6b7280', marginBottom: '4px' }}>
+                  Banco de Depósito
+                </dt>
+                <dd style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937', margin: '0' }}>
+                  {(data as any)?.bdep || '—'}
+                  {((data as any)?.bdep && (bancoData?.det || bancoData?.detalle || bancoData?.descripcion || bancoData?.nombre)) && (
+                    <span style={{ fontWeight: '400', color: '#6b7280' }}>
+                      {' - '}{(bancoData.det || bancoData.detalle || bancoData.descripcion || bancoData.nombre) as string}
+                    </span>
+                  )}
+                </dd>
+              </div>
+              
+              <div>
+                <dt style={{ fontSize: '14px', fontWeight: '600', color: '#6b7280', marginBottom: '4px' }}>
+                  Mes de Depósito
+                </dt>
+                <dd style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937', margin: '0' }}>
+                  {(data as any)?.mesdep || '—'}
+                </dd>
+              </div>
             </div>
-            <div>
-              <dt className="text-sm font-medium text-secondary-600">Periodo</dt>
-              <dd className="text-sm text-secondary-900">Enero 2024</dd>
+          </div>
+
+          {/* Estado y Configuración */}
+          <div className="card">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px' }}>
+              <span style={{ fontSize: '20px' }}>⚙️</span>
+              <h2 style={{ margin: '0', fontSize: '20px', fontWeight: '600', color: '#1f2937' }}>
+                Estado y Configuración
+              </h2>
             </div>
-            <div>
-              <dt className="text-sm font-medium text-secondary-600">Estado</dt>
-              <dd className="text-sm">
-                <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-warning-100 text-warning-800">
-                  Abierta
-                </span>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', alignItems: 'start' }}>
+              <div>
+                <dt style={{ fontSize: '14px', fontWeight: '600', color: '#6b7280', marginBottom: '8px' }}>
+                  Estado Actual
+                </dt>
+                <dd style={{ margin: '0' }}>
+                  <span style={{
+                    padding: '6px 12px',
+                    borderRadius: '20px',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    backgroundColor: estado === 'Abierta' ? '#fef3c7' : '#dcfce7',
+                    color: estado === 'Abierta' ? '#d97706' : '#16a34a',
+                    border: `1px solid ${estado === 'Abierta' ? '#fbbf24' : '#22c55e'}`,
+                    display: 'block',
+                    textAlign: 'center'
+                  }}>
+                    {estado === 'Abierta' ? '🔓' : '🔒'} {estado}
+                  </span>
+                </dd>
+              </div>
+              
+              <div>
+                <dt style={{ fontSize: '14px', fontWeight: '600', color: '#6b7280', marginBottom: '8px' }}>
+                  Actualizar Novedades
+                </dt>
+                <dd style={{ margin: '0' }}>
+                  <span style={{
+                    padding: '6px 12px',
+                    borderRadius: '20px',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    backgroundColor: ((data as any)?.novebloq === 1 || (data as any)?.novebloq === '1') ? '#dcfce7' : '#fecaca',
+                    color: ((data as any)?.novebloq === 1 || (data as any)?.novebloq === '1') ? '#16a34a' : '#dc2626',
+                    border: `1px solid ${((data as any)?.novebloq === 1 || (data as any)?.novebloq === '1') ? '#22c55e' : '#f87171'}`,
+                    display: 'block',
+                    textAlign: 'center'
+                  }}>
+                    {((data as any)?.novebloq === 1 || (data as any)?.novebloq === '1') ? '✅ Permitido' : '🚫 No Permitido'}
+                  </span>
+                </dd>
+              </div>
+              
+              <div>
+                <dt style={{ fontSize: '14px', fontWeight: '600', color: '#6b7280', marginBottom: '8px' }}>
+                  Confirmación
+                </dt>
+                <dd style={{ margin: '0' }}>
+                  <span style={{
+                    padding: '6px 12px',
+                    borderRadius: '20px',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    backgroundColor: (data as any)?.confirm ? '#dcfce7' : '#f3f4f6',
+                    color: (data as any)?.confirm ? '#16a34a' : '#6b7280',
+                    border: `1px solid ${(data as any)?.confirm ? '#22c55e' : '#d1d5db'}`,
+                    display: 'block',
+                    textAlign: 'center'
+                  }}>
+                    {(data as any)?.confirm ? '✅ Confirmada' : '⏳ Pendiente'}
+                  </span>
+                </dd>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Fila 2: Cronograma de Fechas - Ancho completo */}
+        <div className="card">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px' }}>
+            <span style={{ fontSize: '20px' }}>📅</span>
+            <h2 style={{ margin: '0', fontSize: '20px', fontWeight: '600', color: '#1f2937' }}>
+              Cronograma de Fechas
+            </h2>
+          </div>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+            <div style={{ padding: '16px', backgroundColor: '#e0f2fe', borderRadius: '8px', border: '1px solid #0ea5e9' }}>
+              <dt style={{ fontSize: '14px', fontWeight: '600', color: '#0369a1', marginBottom: '4px' }}>
+                Fecha Valor Contable
+              </dt>
+              <dd style={{ fontSize: '18px', fontWeight: '700', color: '#0c4a6e', margin: '0' }}>
+                {(data as any)?.fvalor || '—'}
               </dd>
             </div>
-          </dl>
-        </div>
+            
+            <div style={{ padding: '16px', backgroundColor: '#dcfce7', borderRadius: '8px', border: '1px solid #22c55e' }}>
+              <dt style={{ fontSize: '14px', fontWeight: '600', color: '#15803d', marginBottom: '4px' }}>
+                Fecha de Liquidación
+              </dt>
+              <dd style={{ fontSize: '18px', fontWeight: '700', color: '#166534', margin: '0' }}>
+                {(data as any)?.fliq || '—'}
+              </dd>
+            </div>
+            
+            <div style={{ padding: '16px', backgroundColor: '#fed7aa', borderRadius: '8px', border: '1px solid #f59e0b' }}>
+              <dt style={{ fontSize: '14px', fontWeight: '600', color: '#d97706', marginBottom: '4px' }}>
+                Último Depósito
+              </dt>
+              <dd style={{ fontSize: '18px', fontWeight: '700', color: '#b45309', margin: '0' }}>
+                {(data as any)?.fdep || '—'}
+              </dd>
+            </div>
+            
+            <div style={{ padding: '16px', backgroundColor: '#e9d5ff', borderRadius: '8px', border: '1px solid #8b5cf6' }}>
+              <dt style={{ fontSize: '14px', fontWeight: '600', color: '#7c3aed', marginBottom: '4px' }}>
+                Fecha de Pago
+              </dt>
+              <dd style={{ fontSize: '18px', fontWeight: '700', color: '#6d28d9', margin: '0' }}>
+                {(data as any)?.fecpag || '—'}
+                {(data as any)?.diasVencimiento !== null && (data as any)?.diasVencimiento !== undefined && (
+                  <div style={{ 
+                    fontSize: '12px',
+                    marginTop: '4px',
+                    color: (data as any).diasVencimiento < 0 ? '#dc2626' : 
+                          (data as any).diasVencimiento <= 7 ? '#f59e0b' : '#16a34a'
+                  }}>
+                    {(data as any).diasVencimiento < 0 
+                      ? `Venció hace ${Math.abs((data as any).diasVencimiento)} días`
+                      : (data as any).diasVencimiento === 0
+                      ? 'Vence hoy'
+                      : `Vence en ${(data as any).diasVencimiento} días`
+                    }
+                  </div>
+                )}
+              </dd>
+            </div>
 
-        {/* Dates */}
-        <div className="card">
-          <div className="card-header">
-            <h2 className="text-lg font-semibold text-secondary-900">Fechas</h2>
+            {estado === 'Cerrada' && (
+              <div style={{ padding: '16px', backgroundColor: '#f3f4f6', borderRadius: '8px', border: '1px solid #d1d5db' }}>
+                <dt style={{ fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '4px' }}>
+                  Fecha de Cierre
+                </dt>
+                <dd style={{ fontSize: '18px', fontWeight: '700', color: '#1f2937', margin: '0' }}>
+                  {(data as any)?.fcieliq || '—'}
+                </dd>
+              </div>
+            )}
           </div>
-          <dl className="space-y-3">
-            <div>
-              <dt className="text-sm font-medium text-secondary-600">Valor Contable</dt>
-              <dd className="text-sm text-secondary-900">31/01/2024</dd>
-            </div>
-            <div>
-              <dt className="text-sm font-medium text-secondary-600">Liquidación</dt>
-              <dd className="text-sm text-secondary-900">31/01/2024</dd>
-            </div>
-            <div>
-              <dt className="text-sm font-medium text-secondary-600">Último Depósito</dt>
-              <dd className="text-sm text-secondary-900">30/01/2024</dd>
-            </div>
-            <div>
-              <dt className="text-sm font-medium text-secondary-600">Pago</dt>
-              <dd className="text-sm text-secondary-900">05/02/2024</dd>
-            </div>
-            <div>
-              <dt className="text-sm font-medium text-secondary-600">Creada</dt>
-              <dd className="text-sm text-secondary-900">15/01/2024</dd>
-            </div>
-          </dl>
         </div>
 
-        {/* Stats */}
-        <div className="card">
-          <div className="card-header">
-            <h2 className="text-lg font-semibold text-secondary-900">Estadísticas</h2>
+        {/* Metadatos del Sistema */}
+        {metadatos && (
+          <div style={{
+            marginTop: '24px',
+            padding: '16px',
+            backgroundColor: '#f3f4f6',
+            border: '1px solid #d1d5db',
+            borderRadius: '12px'
+          }}>
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'space-between', 
+              fontSize: '12px', 
+              color: '#6b7280',
+              flexWrap: 'wrap',
+              gap: '16px'
+            }}>
+              <span>📅 Última consulta: {new Date(metadatos.ultimaConsulta).toLocaleString('es-AR')}</span>
+              <span>⚡ Tiempo de respuesta: {metadatos.tiempoRespuesta}ms</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <span style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '4px',
+                  color: validaciones?.fechasValidas ? '#16a34a' : '#dc2626'
+                }}>
+                  <span style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    backgroundColor: validaciones?.fechasValidas ? '#22c55e' : '#ef4444'
+                  }}></span>
+                  Fechas
+                </span>
+                <span style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '4px',
+                  color: validaciones?.estadoConsistente ? '#16a34a' : '#dc2626'
+                }}>
+                  <span style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    backgroundColor: validaciones?.estadoConsistente ? '#22c55e' : '#ef4444'
+                  }}></span>
+                  Estado
+                </span>
+              </div>
+            </div>
           </div>
-          <dl className="space-y-3">
-            <div>
-              <dt className="text-sm font-medium text-secondary-600">Empleados</dt>
-              <dd className="text-2xl font-semibold text-secondary-900">45</dd>
-            </div>
-            <div>
-              <dt className="text-sm font-medium text-secondary-600">Total Bruto</dt>
-              <dd className="text-2xl font-semibold text-success-600">$2,450,000</dd>
-            </div>
-            <div>
-              <dt className="text-sm font-medium text-secondary-600">Total Neto</dt>
-              <dd className="text-2xl font-semibold text-primary-600">$1,890,500</dd>
-            </div>
-            <div>
-              <dt className="text-sm font-medium text-secondary-600">Descuentos</dt>
-              <dd className="text-2xl font-semibold text-danger-600">$559,500</dd>
-            </div>
-          </dl>
-        </div>
-      </div>
-
-      {/* Actions */}
-      <div className="card">
-        <div className="card-header">
-          <h2 className="text-lg font-semibold text-secondary-900">Acciones Disponibles</h2>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <button className="btn btn-primary">
-            <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            Descargar PDF
-          </button>
-          <button className="btn btn-secondary">
-            <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-            </svg>
-            Duplicar
-          </button>
-          <button className="btn btn-secondary">
-            <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-            </svg>
-            Ver Reportes
-          </button>
-          <button className="btn btn-warning">
-            <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
-            </svg>
-            Validar Datos
-          </button>
-        </div>
+        )}
       </div>
     </div>
   );
