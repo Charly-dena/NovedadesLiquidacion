@@ -51,9 +51,10 @@ Sistema de gestión de liquidaciones de sueldos con arquitectura evolutiva para 
 
 ### 🔍 APIs Integradas
 ```bash
-GET /idx/liq     # Liquidaciones
-GET /idx/emps    # Empresas  
-GET /idx/tliq    # Tipos de liquidación
+GET /idx/liq     # Liquidaciones (implementado)
+GET /idx/emps    # Empresas (implementado con getByCodigo)
+GET /idx/bancos  # Bancos (implementado - nuevo servicio)
+GET /idx/tliq    # Tipos de liquidación (implementado)
 ```
 
 ---
@@ -124,18 +125,27 @@ npm run dev
 - [x] Análisis de requerimientos y planificación arquitectónica
 - [x] Setup de repositorio y documentación completa
 - [x] **Issue #5:** Setup React + Vite + TypeScript ✅
+- [x] **Issue #6:** Configurar TailwindCSS + Tema Base ✅
+- [x] **Issue #7:** Layout base y navegación responsive ✅
+- [x] **Issue #8:** React Router + rutas modulares ✅
+- [x] **Sprint 1:** Configuración completa del proyecto base
+- [x] **Módulo Liquidaciones:** Implementación completa con mejoras avanzadas
 
-### 🔄 En Progreso - Sprint 1 (Semana 1)
-- [ ] **Issue #6:** Configurar TailwindCSS + Tema Base
-- [ ] **Issue #7:** Layout base y navegación responsive
-- [ ] **Issue #8:** React Router + rutas modulares
-- [ ] **Issue #9:** Servicios API base + conexión ApiIdeafix
-- [ ] **Issue #10:** Componentes UI compartidos
+### 🎯 Funcionalidades Implementadas - Módulo Liquidaciones
+- [x] Grid de liquidaciones funcional con datos en tiempo real
+- [x] Vista detalle completamente rediseñada y funcional
+- [x] Navegación corregida (fix crítico: siempre mostraba "Liquidación #1")
+- [x] Integración con servicios externos (/idx/emps, /idx/bancos)
+- [x] Layout horizontal optimizado para mejor uso de pantalla
+- [x] Estados visuales mejorados (Abierta/Cerrada)
+- [x] Campos completos: banco depósito, mes depósito, forma pago
+- [x] Sistema de validaciones y logging completo
+- [x] Servicios API base + conexión ApiIdeafix completa
 
-### 📅 Próximos Pasos - Sprint 2-3
-- [ ] Grid de liquidaciones funcional
-- [ ] CRUD completo con validaciones
-- [ ] Sistema de filtros avanzados
+### 📅 Próximos Pasos - Sprint 2
+- [ ] CRUD completo con validaciones (crear/editar liquidaciones)
+- [ ] Sistema de filtros avanzados en el grid
+- [ ] Módulo de novedades (Fase 2)
 - [ ] Deploy MVP
 
 ---
