@@ -18,20 +18,47 @@ export function NavLink({ href, icon, children, badge, description, disabled = f
     if (typeof icon === 'string') {
       return <span style={{ fontSize: '16px' }}>{icon}</span>;
     }
-    return <span className="flex items-center justify-center">{icon}</span>;
+    return <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{icon}</span>;
   };
 
   if (disabled) {
     return (
-      <div className="group flex items-center px-4 py-3 text-sm font-medium rounded-xl text-secondary-400 cursor-not-allowed bg-secondary-50/50">
-        <span className="flex-shrink-0 text-secondary-300 w-6 h-6 flex items-center justify-center">
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        padding: '12px 16px',
+        fontSize: '14px',
+        fontWeight: '500',
+        borderRadius: '12px',
+        color: '#94a3b8',
+        cursor: 'not-allowed',
+        backgroundColor: 'rgba(248, 250, 252, 0.5)'
+      }}>
+        <span style={{
+          flexShrink: 0,
+          color: '#cbd5e1',
+          width: '24px',
+          height: '24px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
           {renderIcon()}
         </span>
-        <div className="ml-3 flex-1">
-          <div className="flex items-center justify-between">
-            <span className="font-medium">{children}</span>
+        <div style={{ marginLeft: '12px', flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontWeight: '500' }}>{children}</span>
             {badge && (
-              <span className="ml-2 inline-block py-1 px-2 text-xs rounded-lg bg-secondary-200 text-secondary-500 font-medium">
+              <span style={{
+                marginLeft: '8px',
+                display: 'inline-block',
+                padding: '4px 8px',
+                fontSize: '12px',
+                borderRadius: '8px',
+                backgroundColor: '#e2e8f0',
+                color: '#64748b',
+                fontWeight: '500'
+              }}>
                 {badge}
               </span>
             )}
@@ -52,22 +79,46 @@ export function NavLink({ href, icon, children, badge, description, disabled = f
       <RouterNavLink
         to={href}
         onClick={onClick}
-        className="group flex items-center px-4 py-4 text-sm font-bold rounded-xl transition-all duration-300 relative overflow-hidden bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/30 hover:shadow-xl hover:shadow-emerald-500/40 hover:from-emerald-600 hover:to-teal-700 active:scale-95"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          padding: '16px',
+          fontSize: '14px',
+          fontWeight: '700',
+          borderRadius: '12px',
+          transition: 'all 0.3s',
+          position: 'relative',
+          overflow: 'hidden',
+          background: 'linear-gradient(to right, #10b981, #14b8a6)',
+          color: 'white',
+          textDecoration: 'none',
+          boxShadow: '0 10px 15px -3px rgba(16, 185, 129, 0.3), 0 4px 6px -2px rgba(16, 185, 129, 0.05)'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.boxShadow = '0 20px 25px -5px rgba(16, 185, 129, 0.4), 0 10px 10px -5px rgba(16, 185, 129, 0.04)';
+          e.currentTarget.style.background = 'linear-gradient(to right, #059669, #0d9488)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(16, 185, 129, 0.3), 0 4px 6px -2px rgba(16, 185, 129, 0.05)';
+          e.currentTarget.style.background = 'linear-gradient(to right, #10b981, #14b8a6)';
+        }}
       >
-        {() => (
-          <>
-            <span className="flex-shrink-0 mr-3 text-white drop-shadow-sm">
-              {renderIcon()}
-            </span>
-            <span className="flex-1 font-bold text-white drop-shadow-sm">
-              {children}
-            </span>
-            {/* Shine effect */}
-            <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-            {/* Glow effect */}
-            <div className="absolute inset-0 rounded-xl bg-white/10 group-hover:bg-white/20 transition-all duration-300" />
-          </>
-        )}
+        <span style={{
+          flexShrink: 0,
+          marginRight: '12px',
+          color: 'white',
+          filter: 'drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1))'
+        }}>
+          {renderIcon()}
+        </span>
+        <span style={{
+          flex: 1,
+          fontWeight: '700',
+          color: 'white',
+          filter: 'drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1))'
+        }}>
+          {children}
+        </span>
       </RouterNavLink>
     );
   }
@@ -76,43 +127,80 @@ export function NavLink({ href, icon, children, badge, description, disabled = f
     <RouterNavLink
       to={href}
       onClick={onClick}
-      className={({ isActive }) => `
-        group flex items-center px-3 py-3.5 text-sm font-semibold rounded-xl transition-all duration-300 relative overflow-hidden
-        ${isActive 
-          ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/25' 
-          : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50/80 hover:shadow-sm'
+      style={({ isActive }) => ({
+        display: 'flex',
+        alignItems: 'center',
+        padding: '12px',
+        fontSize: '14px',
+        fontWeight: '600',
+        borderRadius: '12px',
+        transition: 'all 0.3s',
+        position: 'relative',
+        overflow: 'hidden',
+        textDecoration: 'none',
+        background: isActive 
+          ? 'linear-gradient(to right, #3b82f6, #2563eb)' 
+          : 'transparent',
+        color: isActive ? 'white' : '#374151',
+        boxShadow: isActive ? '0 10px 15px -3px rgba(59, 130, 246, 0.25), 0 4px 6px -2px rgba(59, 130, 246, 0.05)' : 'none'
+      })}
+      onMouseEnter={(e) => {
+        if (!e.currentTarget.pathname || window.location.pathname !== e.currentTarget.pathname) {
+          e.currentTarget.style.backgroundColor = 'rgba(249, 250, 251, 0.8)';
+          e.currentTarget.style.boxShadow = '0 1px 2px 0 rgba(0, 0, 0, 0.05)';
         }
-      `.trim()}
+      }}
+      onMouseLeave={(e) => {
+        const isActive = window.location.pathname === href;
+        if (!isActive) {
+          e.currentTarget.style.backgroundColor = 'transparent';
+          e.currentTarget.style.boxShadow = 'none';
+        }
+      }}
     >
       {({ isActive }) => (
         <>
-          <span className={`flex-shrink-0 mr-3 transition-all duration-300 ${
-            isActive ? 'text-white drop-shadow-sm' : 'text-gray-500 group-hover:text-blue-600'
-          }`}>
+          <span style={{
+            flexShrink: 0,
+            marginRight: '12px',
+            transition: 'all 0.3s',
+            color: isActive ? 'white' : '#6b7280',
+            filter: isActive ? 'drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1))' : 'none'
+          }}>
             {renderIcon()}
           </span>
-          <span className={`flex-1 font-semibold transition-all duration-300 ${
-            isActive ? 'text-white drop-shadow-sm' : 'text-gray-700 group-hover:text-gray-900'
-          }`}>
+          <span style={{
+            flex: 1,
+            fontWeight: '600',
+            transition: 'all 0.3s',
+            color: isActive ? 'white' : '#374151',
+            filter: isActive ? 'drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1))' : 'none'
+          }}>
             {children}
           </span>
           {badge && (
-            <span className={`ml-2 px-2.5 py-1 text-xs font-bold rounded-full transition-all duration-300 ${
-              urgent
-                ? 'bg-red-500 text-white shadow-sm' 
+            <span style={{
+              marginLeft: '8px',
+              padding: '4px 10px',
+              fontSize: '12px',
+              fontWeight: '700',
+              borderRadius: '9999px',
+              transition: 'all 0.3s',
+              background: urgent
+                ? '#ef4444'
                 : isActive 
-                  ? 'bg-white/20 text-white backdrop-blur-sm' 
-                  : 'bg-gray-100 text-gray-600 group-hover:bg-blue-100 group-hover:text-blue-700'
-            }`}>
+                  ? 'rgba(255, 255, 255, 0.2)'
+                  : '#f3f4f6',
+              color: urgent
+                ? 'white'
+                : isActive 
+                  ? 'white'
+                  : '#4b5563',
+              boxShadow: urgent ? '0 1px 2px 0 rgba(0, 0, 0, 0.05)' : 'none'
+            }}>
               {badge}
             </span>
           )}
-          {/* Hover effect overlay */}
-          <div className={`absolute inset-0 rounded-xl transition-all duration-300 ${
-            isActive 
-              ? 'bg-white/5' 
-              : 'bg-gradient-to-r from-blue-50/0 via-blue-50/0 to-blue-50/0 group-hover:from-blue-50/50 group-hover:via-blue-50/30 group-hover:to-blue-50/50'
-          }`} />
         </>
       )}
     </RouterNavLink>

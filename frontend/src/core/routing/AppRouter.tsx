@@ -28,7 +28,7 @@ const router = createBrowserRouter([
             element: <LiquidacionesModule.Create />,
           },
           {
-            path: ':id',
+            path: 'detalle',
             element: <LiquidacionesModule.Detail />,
           },
           {

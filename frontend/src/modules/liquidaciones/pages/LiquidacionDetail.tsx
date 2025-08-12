@@ -1,6 +1,45 @@
 import { useEffect, useMemo, useState } from 'react';
 import { liquidacionesService, empresasService, bancosService } from '@/shared/services';
 
+/**
+ * Detecta si una fecha es un placeholder (fecha vacía/nula del backend)
+ * y debe mostrarse como vacía en la UI
+ */
+const isPlaceholderDate = (dateStr?: string): boolean => {
+  if (!dateStr || typeof dateStr !== 'string') {
+    return true;
+  }
+  
+  const trimmed = dateStr.trim();
+  
+  if (trimmed.length === 0) {
+    return true;
+  }
+  
+  // Patrones comunes de fechas placeholder
+  const placeholderPatterns = [
+    /^00?\/00?\/0+$/,           // 00/00/0000, 0/0/0000
+    /^01\/01\/1900$/,           // 01/01/1900 (fecha mínima común)
+    /^31\/12\/1899$/,           // 31/12/1899 (otra fecha mínima)
+    /^__\/__\/____$/,           // __/__/____
+    /^\s*\/\s*\/\s*$/,          // espacios y barras
+    /^[\s_0\/]*$/,              // solo espacios, guiones bajos, ceros y barras
+    /^[-\s]*$/,                 // solo guiones y espacios
+  ];
+  
+  return placeholderPatterns.some(pattern => pattern.test(trimmed));
+};
+
+/**
+ * Formatea una fecha para mostrar en la UI, mostrando "—" para placeholders
+ */
+const formatDateForDisplay = (dateStr?: string): string => {
+  if (isPlaceholderDate(dateStr)) {
+    return '—';
+  }
+  return dateStr || '—';
+};
+
 export function LiquidacionDetail() {
   const params = new URLSearchParams(window.location.search);
   const nroliq = params.get('nroliq') || params.get('id') || '';
@@ -125,12 +164,15 @@ export function LiquidacionDetail() {
 
   const fcieliq = useMemo(() => {
     const d: any = data || {};
-    return d?.fcieliq || '—';
+    return formatDateForDisplay(d?.fcieliq);
   }, [data]);
 
   const estado = useMemo(() => {
-    return fcieliq && String(fcieliq).trim().length > 0 ? 'Cerrada' : 'Abierta';
-  }, [fcieliq]);
+    const d: any = data || {};
+    const fcieliqRaw = d?.fcieliq;
+    // Usar la función de validación de placeholders para determinar estado
+    return isPlaceholderDate(fcieliqRaw) ? 'Abierta' : 'Cerrada';
+  }, [data]);
 
 
   if (loading) {
@@ -235,14 +277,9 @@ export function LiquidacionDetail() {
             
             <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
               {estado === 'Abierta' && (
-                <>
-                  <button className="btn btn-secondary">
-                    ✏️ Editar
-                  </button>
-                  <button className="btn" style={{ backgroundColor: '#16a34a', color: 'white' }}>
-                    ✅ Cerrar Liquidación
-                  </button>
-                </>
+                <button className="btn btn-secondary">
+                  ✏️ Editar
+                </button>
               )}
             </div>
           </div>
@@ -443,7 +480,7 @@ export function LiquidacionDetail() {
                 Fecha Valor Contable
               </dt>
               <dd style={{ fontSize: '18px', fontWeight: '700', color: '#0c4a6e', margin: '0' }}>
-                {(data as any)?.fvalor || '—'}
+                {formatDateForDisplay((data as any)?.fvalor)}
               </dd>
             </div>
             
@@ -452,7 +489,7 @@ export function LiquidacionDetail() {
                 Fecha de Liquidación
               </dt>
               <dd style={{ fontSize: '18px', fontWeight: '700', color: '#166534', margin: '0' }}>
-                {(data as any)?.fliq || '—'}
+                {formatDateForDisplay((data as any)?.fliq)}
               </dd>
             </div>
             
@@ -461,7 +498,7 @@ export function LiquidacionDetail() {
                 Último Depósito
               </dt>
               <dd style={{ fontSize: '18px', fontWeight: '700', color: '#b45309', margin: '0' }}>
-                {(data as any)?.fdep || '—'}
+                {formatDateForDisplay((data as any)?.fdep)}
               </dd>
             </div>
             
@@ -470,7 +507,7 @@ export function LiquidacionDetail() {
                 Fecha de Pago
               </dt>
               <dd style={{ fontSize: '18px', fontWeight: '700', color: '#6d28d9', margin: '0' }}>
-                {(data as any)?.fecpag || '—'}
+                {formatDateForDisplay((data as any)?.fecpag)}
                 {(data as any)?.diasVencimiento !== null && (data as any)?.diasVencimiento !== undefined && (
                   <div style={{ 
                     fontSize: '12px',
@@ -495,7 +532,7 @@ export function LiquidacionDetail() {
                   Fecha de Cierre
                 </dt>
                 <dd style={{ fontSize: '18px', fontWeight: '700', color: '#1f2937', margin: '0' }}>
-                  {(data as any)?.fcieliq || '—'}
+                  {fcieliq}
                 </dd>
               </div>
             )}

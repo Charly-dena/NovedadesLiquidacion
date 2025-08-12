@@ -17,10 +17,64 @@ class LiquidacionesService {
   private readonly endpoint = API_CONFIG.ENDPOINTS.LIQUIDACIONES;
 
   /**
+   * Detecta si una fecha es un placeholder (fecha vacía/nula del backend)
+   * Condiciones para considerar una fecha como placeholder (liquidación ABIERTA):
+   * - null, undefined, string vacío
+   * - Patrones como 00/00/0000, 01/01/1900, etc.
+   * - Cualquier valor que indique "sin fecha de cierre"
+   */
+  private isPlaceholderDate(dateStr?: string): boolean {
+    // null, undefined, o no es string
+    if (!dateStr || typeof dateStr !== 'string') {
+      return true;
+    }
+    
+    const trimmed = dateStr.trim();
+    
+    // String vacío
+    if (trimmed.length === 0) {
+      return true;
+    }
+    
+    // Patrones comunes de fechas placeholder
+    const placeholderPatterns = [
+      /^00?\/00?\/0+$/,           // 00/00/0000, 0/0/0000
+      /^01\/01\/1900$/,           // 01/01/1900 (fecha mínima común)
+      /^31\/12\/1899$/,           // 31/12/1899 (otra fecha mínima)
+      /^__\/__\/____$/,           // __/__/____
+      /^\s*\/\s*\/\s*$/,          // espacios y barras
+      /^[\s_0\/]*$/,              // solo espacios, guiones bajos, ceros y barras
+      /^[-\s]*$/,                 // solo guiones y espacios
+    ];
+    
+    const isPlaceholder = placeholderPatterns.some(pattern => pattern.test(trimmed));
+    
+    if (import.meta.env.DEV) {
+      console.log('🔍 [isPlaceholderDate] Análisis:', {
+        original: dateStr,
+        trimmed,
+        isPlaceholder,
+        estado: isPlaceholder ? 'Abierta' : 'Cerrada'
+      });
+    }
+    
+    return isPlaceholder;
+  }
+
+  /**
    * Obtener todas las liquidaciones con filtros
    */
   async getAll(filters?: LiquidacionFilters): Promise<PaginatedResponse<Liquidacion>> {
     const params = this.buildQueryParams(filters);
+    
+    // DEBUG: Log de parámetros enviados al API
+    console.log('🌐 [liquidacionesService.getAll] Parámetros enviados al API:', {
+      endpoint: this.endpoint,
+      filters,
+      params,
+      url: `${this.endpoint}?${new URLSearchParams(Object.entries(params).map(([k, v]) => [k, String(v)]))}`
+    });
+    
     const res = await apiClient.get<unknown>(`${this.endpoint}`, { params });
     if (import.meta.env.DEV) {
       // Logging no intrusivo para entender el shape real del endpoint
@@ -194,6 +248,76 @@ class LiquidacionesService {
   }
 
   /**
+   * Obtener liquidación por número usando el nuevo endpoint /idx/liq/:nroliq
+   * Este método utiliza el endpoint específico para buscar por número de liquidación
+   */
+  async getByNroliq(nroliq: string | number): Promise<Record<string, unknown> | null> {
+    console.log('🎯 [getByNroliq] Usando endpoint directo /idx/liq/:nroliq para:', nroliq);
+    
+    const enrichData = (data: Record<string, unknown>): Record<string, unknown> => {
+      const enriched = { ...data };
+      const fcieliq = data.fcieliq as string;
+      // Usar la función de validación de placeholders para 00/00/0000
+      const isPlaceholder = this.isPlaceholderDate(fcieliq);
+      enriched.estado = !isPlaceholder ? 'Cerrada' : 'Abierta';
+      enriched.isEditable = enriched.estado === 'Abierta';
+      return enriched;
+    };
+
+    try {
+      const res = await apiClient.get<unknown>(`${this.endpoint}/${nroliq}`);
+      console.log('📡 [getByNroliq] Respuesta del endpoint directo:', {
+        received: !!res,
+        type: typeof res,
+        isArray: Array.isArray(res),
+        keys: res && typeof res === 'object' ? Object.keys(res) : []
+      });
+
+      if (!res) {
+        console.log('❌ [getByNroliq] Respuesta vacía del endpoint directo');
+        return null;
+      }
+
+      // Si es array, tomar el primer elemento
+      if (Array.isArray(res)) {
+        const found = res.length > 0 ? res[0] : null;
+        console.log(found ? '✅' : '❌', '[getByNroliq] Array response:', { length: res.length, found: !!found });
+        return found ? enrichData(found as Record<string, unknown>) : null;
+      }
+
+      const obj = res as Record<string, unknown>;
+
+      // Si tiene estructura row1, row2, etc.
+      const rowKeys = Object.keys(obj).filter((k) => /^row\d+$/i.test(k));
+      if (rowKeys.length > 0) {
+        console.log('📋 [getByNroliq] Encontradas claves row:', rowKeys);
+        // Tomar la primera row disponible
+        const firstRowKey = rowKeys.sort((a, b) => {
+          const numA = parseInt(a.replace(/\D/g, ''), 10);
+          const numB = parseInt(b.replace(/\D/g, ''), 10);
+          return numA - numB;
+        })[0];
+        const rowData = (obj as any)[firstRowKey];
+        console.log('✅ [getByNroliq] Usando row:', firstRowKey, rowData);
+        return enrichData(rowData as Record<string, unknown>);
+      }
+
+      // Si es un objeto directo
+      if (obj && typeof obj === 'object') {
+        console.log('✅ [getByNroliq] Objeto directo recibido');
+        return enrichData(obj);
+      }
+
+      console.log('❌ [getByNroliq] Formato de respuesta no reconocido');
+      return null;
+
+    } catch (error: any) {
+      console.log('❌ [getByNroliq] Error en endpoint directo:', error?.message || error);
+      return null;
+    }
+  }
+
+  /**
    * Obtener una liquidación por número (nroliq) cuando el backend no expone /:id
    * Busca dentro de una respuesta tipo array o tipo { row1, row2, ... }
    * Incluye enriquecimiento de datos.
@@ -203,8 +327,10 @@ class LiquidacionesService {
     
     const enrichData = (data: Record<string, unknown>): Record<string, unknown> => {
       const enriched = { ...data };
-      const fcieliq = data.fcieliq;
-      enriched.estado = fcieliq && String(fcieliq).trim().length > 0 ? 'Cerrada' : 'Abierta';
+      const fcieliq = data.fcieliq as string;
+      // Usar la función de validación de placeholders para 00/00/0000
+      const isPlaceholder = this.isPlaceholderDate(fcieliq);
+      enriched.estado = !isPlaceholder ? 'Cerrada' : 'Abierta';
       enriched.isEditable = enriched.estado === 'Abierta';
       return enriched;
     };
@@ -338,9 +464,11 @@ class LiquidacionesService {
       // Enriquecer datos con información calculada
       const enriched = { ...data };
       
-      // Calcular estado basado en fcieliq
-      const fcieliq = data.fcieliq;
-      enriched.estado = fcieliq && String(fcieliq).trim().length > 0 ? 'Cerrada' : 'Abierta';
+      // Calcular estado basado en fcieliq usando validación de placeholders
+      const fcieliq = data.fcieliq as string;
+      // Usar la función de validación de placeholders para 00/00/0000
+      const isPlaceholder = this.isPlaceholderDate(fcieliq);
+      enriched.estado = !isPlaceholder ? 'Cerrada' : 'Abierta';
       
       // Formatear fechas si están disponibles
       const dateFields = ['fvalor', 'fliq', 'fdep', 'fecpag', 'fcieliq'];
@@ -362,17 +490,17 @@ class LiquidacionesService {
       return enriched;
     };
 
-    // 1) /idx/liq/:nro
+    // 1) Usar el nuevo método getByNroliq (endpoint /idx/liq/:nroliq)
     try {
-      console.log('🎯 [getByNroFast] Probando endpoint:', `${this.endpoint}/${nro}`);
-      const res = await apiClient.get<unknown>(`${this.endpoint}/${nro}`);
-      const picked = tryPick(res);
-      if (picked) {
-        console.log('✅ [getByNroFast] Encontrado con endpoint directo:', picked);
-        return enrichData(picked);
+      console.log('🎯 [getByNroFast] Probando nuevo endpoint getByNroliq para:', nro);
+      const result = await this.getByNroliq(nro);
+      if (result) {
+        console.log('✅ [getByNroFast] Encontrado con getByNroliq:', result);
+        return enrichData(result);
       }
+      console.log('❌ [getByNroFast] getByNroliq no encontró resultado');
     } catch (e) {
-      console.log('❌ [getByNroFast] Falló endpoint directo:', e);
+      console.log('❌ [getByNroFast] Error con getByNroliq:', e);
     }
 
     // 2) /idx/liq?nroliq=...  3) /idx/liq?nro=...  4) /idx/liq?num=...
@@ -521,12 +649,16 @@ class LiquidacionesService {
     console.log('🔎 [getDetallado] Iniciando búsqueda para nroliq:', nroliq);
 
     try {
-      // Intentar obtener datos
-      console.log('🚀 [getDetallado] Probando getByNroFast...');
-      let data = await this.getByNroFast(nroliq);
+      // Intentar obtener datos usando el nuevo endpoint primero
+      console.log('🚀 [getDetallado] Probando getByNroliq (endpoint directo)...');
+      let data = await this.getByNroliq(nroliq);
       if (!data) {
-        console.log('🔄 [getDetallado] getByNroFast no encontró datos, probando getByNro...');
-        data = await this.getByNro(nroliq);
+        console.log('🔄 [getDetallado] getByNroliq no encontró datos, probando getByNroFast...');
+        data = await this.getByNroFast(nroliq);
+        if (!data) {
+          console.log('🔄 [getDetallado] getByNroFast no encontró datos, probando getByNro...');
+          data = await this.getByNro(nroliq);
+        }
       }
       
       console.log('📋 [getDetallado] Datos encontrados:', {
@@ -628,8 +760,8 @@ class LiquidacionesService {
 
       // Validar que fecha de cierre existe si el estado es Cerrada
       const estado = data.estado as string;
-      if (estado === 'Cerrada' && (!fcieliq || fcieliq.trim().length === 0)) {
-        errores.push('Una liquidación cerrada debe tener fecha de cierre');
+      if (estado === 'Cerrada' && this.isPlaceholderDate(fcieliq)) {
+        errores.push('Una liquidación cerrada debe tener fecha de cierre válida');
       }
 
     } catch {
@@ -649,15 +781,15 @@ class LiquidacionesService {
       const fcieliq = data.fcieliq as string;
       const estado = data.estado as string;
       
-      // Validar consistencia estado vs fecha cierre
-      const tieneFeciaCierre = fcieliq && fcieliq.trim().length > 0;
+      // Validar consistencia estado vs fecha cierre usando validación de placeholders
+      const tieneFeciaCierreValida = !this.isPlaceholderDate(fcieliq);
       
-      if (estado === 'Cerrada' && !tieneFeciaCierre) {
-        errores.push('Estado inconsistente: marcada como Cerrada pero sin fecha de cierre');
+      if (estado === 'Cerrada' && !tieneFeciaCierreValida) {
+        errores.push('Estado inconsistente: marcada como Cerrada pero sin fecha de cierre válida');
       }
       
-      if (estado === 'Abierta' && tieneFeciaCierre) {
-        errores.push('Estado inconsistente: marcada como Abierta pero tiene fecha de cierre');
+      if (estado === 'Abierta' && tieneFeciaCierreValida) {
+        errores.push('Estado inconsistente: marcada como Abierta pero tiene fecha de cierre válida');
       }
       
     } catch {
@@ -669,6 +801,8 @@ class LiquidacionesService {
 
   /**
    * Construir parámetros de consulta para filtros
+   * NOTA: El filtro 'estado' se excluye porque ApiIdeafix no lo soporta
+   * El filtrado por estado se hace en el frontend usando el campo fcieliq
    */
   private buildQueryParams(filters?: LiquidacionFilters): Record<string, unknown> {
     if (!filters) return {};
@@ -681,7 +815,8 @@ class LiquidacionesService {
     if (filters.sort) params.sort = filters.sort;
     if (filters.order) params.order = filters.order;
     if (filters.empresaId) params.empresaId = filters.empresaId;
-    if (filters.estado) params.estado = filters.estado;
+    // REMOVIDO: if (filters.estado) params.estado = filters.estado;
+    // El filtro de estado se maneja en el frontend
     if (filters.fechaDesde) params.fechaDesde = filters.fechaDesde;
     if (filters.fechaHasta) params.fechaHasta = filters.fechaHasta;
     if (filters.tipoLiquidacionId) params.tipoLiquidacionId = filters.tipoLiquidacionId;

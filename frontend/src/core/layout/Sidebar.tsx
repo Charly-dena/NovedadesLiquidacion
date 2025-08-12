@@ -33,8 +33,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           <path d="M10,15H16V16H10V15Z"/>
           <path d="M10,18H14V19H10V18Z"/>
         </svg>
-      ),
-      badge: '156'
+      )
     },
     {
       name: 'Búsqueda Rápida',
@@ -57,8 +56,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
           <path d="M12,7V3H2V21H22V7H12M6,19H4V17H6V19M6,15H4V13H6V15M6,11H4V9H6V11M6,7H4V5H6V7M10,19H8V17H10V19M10,15H8V13H10V15M10,11H8V9H10V11M10,7H8V5H10V7M20,19H18V17H20V19M20,15H18V13H20V15M20,11H18V9H20V11M16,19H14V17H16V19M16,15H14V13H16V15M16,11H14V9H16V11"/>
         </svg>
-      ),
-      badge: '12'
+      )
     },
     {
       name: 'Usuarios',
@@ -107,30 +105,36 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     <>
       {/* Hamburger Sidebar - Always overlay for all screen sizes */}
       <div 
-        className={`fixed inset-y-0 left-0 w-80 transform transition-transform duration-300 ease-in-out ${
-          isOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
-        style={{ 
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          bottom: 0,
+          width: '320px',
           zIndex: 60,
           background: 'linear-gradient(to bottom, #ffffff 0%, #f8fafc 100%)',
           boxShadow: '4px 0 20px rgba(0, 0, 0, 0.15)',
           border: 'none',
-          backdropFilter: 'blur(8px)'
+          backdropFilter: 'blur(8px)',
+          transform: isOpen ? 'translateX(0)' : 'translateX(-100%)',
+          transition: 'transform 0.3s ease-in-out'
         }}
       >
-        <div className="flex flex-col h-full">
-          <div className="flex flex-col flex-grow overflow-y-auto">
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, overflowY: 'auto' }}>
             {/* Header with Logo and Close Button */}
             <div 
-              className="flex items-center justify-between px-6 py-6 border-b"
               style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '24px',
                 backgroundColor: 'white',
-                borderBottomColor: '#e2e8f0',
-                borderBottomWidth: '1px',
+                borderBottom: '1px solid #e2e8f0',
                 boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)'
               }}
             >
-              <div className="flex items-center space-x-3">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <div style={{
                   width: '48px',
                   height: '48px',
@@ -181,19 +185,19 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               </button>
             </div>
             
-            <div className="flex-grow flex flex-col pt-8">
+            <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', paddingTop: '32px' }}>
               {/* Navigation by Work Flows */}
-              <nav className="flex-1 px-6 space-y-8">
+              <nav style={{ flex: 1, padding: '0 24px', display: 'flex', flexDirection: 'column', gap: '32px' }}>
                 
                 {/* OPERACIONES */}
                 <div>
-                  <div className="flex items-center mb-4">
-                    <div className="w-2 h-2 bg-emerald-500 rounded-full mr-3"></div>
-                    <h3 className="text-xs font-black text-gray-800 uppercase tracking-widest">
+                  <div style={{ display: 'flex', alignItems: 'center', marginBottom: '16px' }}>
+                    <div style={{ width: '8px', height: '8px', backgroundColor: '#10b981', borderRadius: '50%', marginRight: '12px' }}></div>
+                    <h3 style={{ fontSize: '11px', fontWeight: '900', color: '#1f2937', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
                       OPERACIONES
                     </h3>
                   </div>
-                  <div className="space-y-2">
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     {operacionesItems.map((item) => (
                       <NavLink
                         key={item.name}
@@ -211,13 +215,13 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
                 {/* GESTIÓN */}
                 <div>
-                  <div className="flex items-center mb-4">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
-                    <h3 className="text-xs font-black text-gray-800 uppercase tracking-widest">
+                  <div style={{ display: 'flex', alignItems: 'center', marginBottom: '16px' }}>
+                    <div style={{ width: '8px', height: '8px', backgroundColor: '#3b82f6', borderRadius: '50%', marginRight: '12px' }}></div>
+                    <h3 style={{ fontSize: '11px', fontWeight: '900', color: '#1f2937', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
                       GESTIÓN
                     </h3>
                   </div>
-                  <div className="space-y-2">
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     {gestionItems.map((item) => (
                       <NavLink
                         key={item.name}
@@ -234,13 +238,13 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
                 {/* ANÁLISIS */}
                 <div>
-                  <div className="flex items-center mb-4">
-                    <div className="w-2 h-2 bg-purple-500 rounded-full mr-3"></div>
-                    <h3 className="text-xs font-black text-gray-800 uppercase tracking-widest">
+                  <div style={{ display: 'flex', alignItems: 'center', marginBottom: '16px' }}>
+                    <div style={{ width: '8px', height: '8px', backgroundColor: '#a855f7', borderRadius: '50%', marginRight: '12px' }}></div>
+                    <h3 style={{ fontSize: '11px', fontWeight: '900', color: '#1f2937', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
                       ANÁLISIS
                     </h3>
                   </div>
-                  <div className="space-y-2">
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     {analisisItems.map((item) => (
                       <NavLink
                         key={item.name}
@@ -258,14 +262,14 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
               {/* Bottom User Section */}
               <div 
-                className="flex-shrink-0 px-6 py-4 border-t"
                 style={{
+                  flexShrink: 0,
+                  padding: '16px 24px',
                   backgroundColor: 'white',
-                  borderTopColor: '#e2e8f0',
-                  borderTopWidth: '1px'
+                  borderTop: '1px solid #e2e8f0'
                 }}
               >
-                <div className="flex items-center gap-3">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <div style={{
                     width: '36px',
                     height: '36px',
@@ -277,7 +281,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                   }}>
                     <span style={{ fontSize: '14px', color: 'white' }}>CA</span>
                   </div>
-                  <div className="flex-1">
+                  <div style={{ flex: 1 }}>
                     <p style={{ fontSize: '13px', fontWeight: '600', color: '#374151', margin: '0' }}>
                       Carlos Admin
                     </p>

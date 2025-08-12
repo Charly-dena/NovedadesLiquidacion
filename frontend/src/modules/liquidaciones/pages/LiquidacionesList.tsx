@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useLiquidaciones } from '@/shared/hooks';
+import { useLiquidacionesHybrid } from '@/shared/hooks';
 import { useEmpresasCombo } from '@/shared/hooks/useEmpresas';
 import type { Liquidacion } from '@/shared/types/api';
 
@@ -7,26 +7,88 @@ export function LiquidacionesList() {
   const [selectedPeriod, setSelectedPeriod] = useState('todos');
   const [selectedStatus, setSelectedStatus] = useState<'todos' | 'abierta' | 'cerrada'>('todos');
   const [selectedCompany, setSelectedCompany] = useState('todas');
+  const [selectedNumero, setSelectedNumero] = useState(''); // Nuevo filtro por número
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(25);
+  const [limit, setLimit] = useState(25); // Límite eficiente restaurado
 
   const apiFilters = useMemo(() => {
-    return {
+    const filters = {
       empresaId: selectedCompany !== 'todas' ? selectedCompany : undefined,
-      estado:
-        selectedStatus === 'abierta' ? 'Abierta' : selectedStatus === 'cerrada' ? 'Cerrada' : undefined,
+      // REMOVIDO: filtro de estado porque ApiIdeafix no lo soporta
+      // El filtrado por estado se hace en el frontend usando fcieliq
       search: selectedPeriod !== 'todos' ? selectedPeriod : undefined,
       page,
       limit,
     } as const;
-  }, [selectedCompany, selectedPeriod, selectedStatus, page, limit]);
+    
+    // DEBUG: Log de filtros aplicados
+    console.log('⚙️ [LiquidacionesList] Filtros aplicados al API:', {
+      selectedCompany,
+      selectedPeriod,
+      selectedStatus,
+      selectedNumero,
+      page,
+      limit,
+      apiFilters: filters
+    });
+    
+    return filters;
+  }, [selectedCompany, selectedPeriod, selectedStatus, selectedNumero, page, limit]);
 
   useEffect(() => {
     setPage(1);
-  }, [selectedCompany, selectedPeriod, selectedStatus]);
+  }, [selectedCompany, selectedPeriod, selectedNumero]);
 
-  const { liquidaciones, pagination, loading, error } = useLiquidaciones(apiFilters);
+  // Hook híbrido: Búsqueda inteligente
+  const { liquidaciones, pagination, loading, error, mode } = useLiquidacionesHybrid(
+    selectedNumero.trim() || undefined,  // Si hay número, búsqueda directa
+    selectedNumero.trim() ? undefined : apiFilters  // Si no hay número, filtros normales
+  );
   const { empresas: empresasCombo } = useEmpresasCombo();
+
+  /**
+   * Detecta si una fecha es un placeholder (fecha vacía/nula del backend)
+   * Condiciones para considerar una fecha como placeholder (liquidación ABIERTA):
+   * - null, undefined, string vacío
+   * - Patrones como 00/00/0000, 01/01/1900, etc.
+   * - Cualquier valor que indique "sin fecha de cierre"
+   */
+  const isPlaceholderDate = (dateStr?: string): boolean => {
+    // null, undefined, o no es string
+    if (!dateStr || typeof dateStr !== 'string') {
+      console.log('🔍 [isPlaceholderDate] Valor null/undefined/no-string:', dateStr, '-> TRUE (Abierta)');
+      return true;
+    }
+    
+    const trimmed = dateStr.trim();
+    
+    // String vacío
+    if (trimmed.length === 0) {
+      console.log('🔍 [isPlaceholderDate] String vacío:', JSON.stringify(dateStr), '-> TRUE (Abierta)');
+      return true;
+    }
+    
+    // Patrones comunes de fechas placeholder
+    const placeholderPatterns = [
+      /^00?\/00?\/0+$/,           // 00/00/0000, 0/0/0000
+      /^01\/01\/1900$/,           // 01/01/1900 (fecha mínima común)
+      /^31\/12\/1899$/,           // 31/12/1899 (otra fecha mínima)
+      /^__\/__\/____$/,           // __/__/____
+      /^\s*\/\s*\/\s*$/,          // espacios y barras
+      /^[\s_0\/]*$/,              // solo espacios, guiones bajos, ceros y barras
+      /^[-\s]*$/,                 // solo guiones y espacios
+    ];
+    
+    const isPlaceholder = placeholderPatterns.some(pattern => pattern.test(trimmed));
+    console.log('🔍 [isPlaceholderDate] Análisis:', {
+      original: dateStr,
+      trimmed,
+      isPlaceholder,
+      estado: isPlaceholder ? 'Abierta' : 'Cerrada'
+    });
+    
+    return isPlaceholder;
+  };
 
   const parseFecha = (value?: string): number => {
     if (!value) return 0;
@@ -51,7 +113,97 @@ export function LiquidacionesList() {
   };
 
   const uiLiquidaciones = useMemo(() => {
-    const items = ((liquidaciones as Liquidacion[]) || []).map((it: any) => it && typeof it === 'object' && it.row1 ? it.row1 : it);
+    // DEBUG: Log de datos crudos del API
+    console.log('📡 Datos del API liquidaciones:', {
+      liquidaciones,
+      liquidacionesType: typeof liquidaciones,
+      liquidacionesLength: Array.isArray(liquidaciones) ? liquidaciones.length : 'N/A',
+      firstItem: Array.isArray(liquidaciones) && liquidaciones.length > 0 ? liquidaciones[0] : 'N/A'
+    });
+    
+    // DEBUG: Log de todos los números de liquidación que llegan del API
+    const items = ((liquidaciones as any[]) || []).map((it: any) => it && typeof it === 'object' && it.row1 ? it.row1 : it);
+    const numerosEncontrados = items.map((raw: any, index: number) => {
+      const numero = (raw?.nroliq ?? raw?.liqnro ?? raw?.nro ?? raw?.num ?? raw?.numero)?.toString();
+      return { index, numero, hasData: !!raw, raw };
+    }).filter(item => item.numero);
+    
+    console.log('🔢 NÚMEROS DE LIQUIDACIÓN EN EL API:', {
+      total: numerosEncontrados.length,
+      numeros: numerosEncontrados.map(n => n.numero).sort((a, b) => Number(a) - Number(b)),
+      tiene3002: numerosEncontrados.some(n => n.numero === '3002'),
+      primeros10: numerosEncontrados.slice(0, 10)
+    });
+    
+    // DEBUG: Analizar estructura de datos para encontrar dónde está el número de liquidación
+    console.log('🔍 ANÁLISIS ESTRUCTURA DE DATOS (primeros 3 items):');
+    items.slice(0, 3).forEach((raw, index) => {
+      console.log(`📄 Item ${index}:`, {
+        tipoObjeto: typeof raw,
+        claves: Object.keys(raw || {}),
+        valoresPosiblesNumero: {
+          nroliq: raw?.nroliq,
+          liqnro: raw?.liqnro,  
+          nro: raw?.nro,
+          num: raw?.num,
+          numero: raw?.numero,
+          id: raw?.id
+        },
+        objetoCompleto: raw
+      });
+    });
+    
+    // DEBUG: Buscar específicamente liquidación 3002 en datos crudos
+    const liq3002 = numerosEncontrados.find(item => item.numero === '3002');
+    if (liq3002) {
+      console.log('✅ ENCONTRADA liquidación 3002 en datos del API:', liq3002);
+    } else {
+      console.log('❌ NO ENCONTRADA liquidación 3002 en el API');
+      console.log('🔍 Revisando todos los datos crudos para buscar 3002...');
+      
+      // Búsqueda exhaustiva en toda la respuesta
+      const busquedaExhaustiva = items.map((raw: any, index: number) => {
+        if (!raw || typeof raw !== 'object') return null;
+        
+        const camposConValores: any = {};
+        const allValues = Object.entries(raw).map(([key, value]) => {
+          const strValue = String(value);
+          camposConValores[key] = strValue;
+          return { key, value: strValue, contiene3002: strValue.includes('3002') };
+        });
+        
+        const tieneAlgun3002 = allValues.some(item => item.contiene3002);
+        const camposCon3002 = allValues.filter(item => item.contiene3002);
+        
+        return tieneAlgun3002 ? { 
+          index, 
+          camposCon3002,
+          todosLosCampos: camposConValores,
+          raw 
+        } : null;
+      }).filter(item => item !== null);
+      
+      if (busquedaExhaustiva.length > 0) {
+        console.log('🔍 Encontrados datos que contienen "3002":', busquedaExhaustiva);
+        
+        // Log específico de cada campo que contiene 3002
+        busquedaExhaustiva.forEach((item, idx) => {
+          console.log(`📋 Resultado ${idx + 1} con "3002":`, {
+            indiceEnArray: item.index,
+            camposQueTienen3002: item.camposCon3002,
+            objetoCompleto: item.raw
+          });
+        });
+      } else {
+        console.log('❌ No se encontró "3002" en ningún lugar de los datos del API');
+        
+        // Log de muestra de la estructura para debug
+        if (items.length > 0) {
+          console.log('📋 Muestra de estructura de datos (primer item completo):', items[0]);
+          console.log('📋 Claves disponibles en el primer item:', Object.keys(items[0] || {}));
+        }
+      }
+    }
     const mapped = items.map((raw: any, index: number) => {
       const numero: string | undefined = (raw?.nroliq ?? raw?.liqnro ?? raw?.nro ?? raw?.num ?? raw?.numero)?.toString();
       // Si viene razon social en payload, preferirla para la grilla
@@ -62,11 +214,37 @@ export function LiquidacionesList() {
       const tipoNombre: string = raw?.tipoLiquidacion?.nombre ?? raw?.tipo ?? raw?.tliqNombre ?? String(raw?.tliq ?? '-');
       const empleados: number = Number(raw?.empleados ?? raw?.cantEmpleados ?? 0) || 0;
       const monto: number = Number(raw?.totalNeto ?? raw?.totalBruto ?? raw?.total ?? raw?.monto ?? 0) || 0;
-      // Regla: fcieliq con valor => Cerrada, si no => Abierta
+      // Regla: fcieliq con fecha válida (no placeholder) => Cerrada, si no => Abierta
       const fcieliqVal = raw?.fcieliq;
-      const estado: string = (typeof fcieliqVal === 'string' ? fcieliqVal.trim().length > 0 : Boolean(fcieliqVal))
-        ? 'Cerrada'
-        : 'Abierta';
+      const isPlaceholder = isPlaceholderDate(fcieliqVal);
+      
+      // DEBUG: Log detallado para liquidaciones específicas
+      if (String(numero) === '1' || String(numero) === '3002') {
+        console.log(`🔍 DEBUG Liquidación ${numero} - COMPLETO:`, {
+          numero,
+          fcieliq: fcieliqVal,
+          fcieliqType: typeof fcieliqVal,
+          fcieliqValue: JSON.stringify(fcieliqVal),
+          fcieliqLength: typeof fcieliqVal === 'string' ? fcieliqVal.length : 'N/A',
+          fcieliqTrimmed: typeof fcieliqVal === 'string' ? fcieliqVal.trim() : 'N/A',
+          isPlaceholder,
+          estadoCalculado: !isPlaceholder ? 'Cerrada' : 'Abierta',
+          allRawKeys: Object.keys(raw || {}),
+          rawData: raw
+        });
+        
+        // Log adicional para analizar todos los campos de fecha
+        console.log(`🔍 DEBUG Liquidación ${numero} - FECHAS:`, {
+          fvalor: raw?.fvalor,
+          fliq: raw?.fliq,
+          fdep: raw?.fdep,
+          fecpag: raw?.fecpag,
+          fcieliq: raw?.fcieliq,
+          fechaCierreText: raw?.fcieliq ?? '-'
+        });
+      }
+      
+      const estado: string = !isPlaceholder ? 'Cerrada' : 'Abierta';
       const fechaOrdenStr: string | undefined = fechaLiquidacionText;
       const fechaOrden = parseFecha(fechaOrdenStr);
 
@@ -76,12 +254,50 @@ export function LiquidacionesList() {
 
       return { id, numero, titulo, empresaId, empresaNombre, fechaLiquidacion: fechaLiquidacionText, fechaCierre: fechaCierreText, tipoNombre, empleados, monto, estado, fechaOrden } as const;
     });
+    
+    // DEBUG: Log resumen de estados calculados
+    const abiertas = mapped.filter(l => l.estado === 'Abierta');
+    const cerradas = mapped.filter(l => l.estado === 'Cerrada');
+    
+    console.log('📊 RESUMEN ESTADOS:', {
+      totalLiquidaciones: mapped.length,
+      abiertas: abiertas.length,
+      cerradas: cerradas.length,
+      ejemplos: mapped.slice(0, 3).map(l => ({
+        numero: l.numero,
+        estado: l.estado,
+        fcieliq: l.fechaCierre
+      }))
+    });
+    
+    // DEBUG: Log específico de liquidaciones abiertas
+    if (abiertas.length > 0) {
+      console.log('📋 LIQUIDACIONES ABIERTAS:', abiertas.map(l => ({
+        numero: l.numero,
+        empresa: l.empresaNombre,
+        fechaCierre: l.fechaCierre,
+        fechaLiq: l.fechaLiquidacion
+      })));
+    }
+    
+    // DEBUG: Log específico de liquidaciones cerradas (primeras 5)
+    if (cerradas.length > 0) {
+      console.log('🔒 LIQUIDACIONES CERRADAS (primeras 5):', cerradas.slice(0, 5).map(l => ({
+        numero: l.numero,
+        empresa: l.empresaNombre,
+        fechaCierre: l.fechaCierre,
+        fechaLiq: l.fechaLiquidacion
+      })));
+    }
+    
     // Orden descendente por fecha de liquidación (fliq)
     mapped.sort((a, b) => (b.fechaOrden || 0) - (a.fechaOrden || 0));
     // Remover fechaOrden del objeto expuesto
     return mapped.map(({ fechaOrden, ...rest }) => rest);
   }, [liquidaciones]);
 
+  // Filtrado frontend: el estado se filtra aquí porque ApiIdeafix no soporta filtros de estado
+  // El estado se determina por el campo fcieliq: con valor = Cerrada, sin valor = Abierta
   const filteredLiquidaciones = useMemo(() => {
     return uiLiquidaciones.filter((it: any) => {
       const okEstado =
@@ -89,9 +305,10 @@ export function LiquidacionesList() {
         (it.estado ?? '').toLowerCase() === (selectedStatus === 'abierta' ? 'abierta' : 'cerrada');
       const okEmpresa = selectedCompany === 'todas' || String(it.empresaId ?? '') === selectedCompany;
       const okPeriodo = selectedPeriod === 'todos' || String(it.fechaLiquidacion ?? '').includes(selectedPeriod);
-      return okEstado && okEmpresa && okPeriodo;
+      const okNumero = !selectedNumero.trim() || String(it.numero ?? it.id ?? '').toLowerCase() === selectedNumero.toLowerCase().trim();
+      return okEstado && okEmpresa && okPeriodo && okNumero;
     });
-  }, [uiLiquidaciones, selectedStatus, selectedCompany, selectedPeriod]);
+  }, [uiLiquidaciones, selectedStatus, selectedCompany, selectedPeriod, selectedNumero]);
 
   const stats = useMemo(() => {
     const abiertas = uiLiquidaciones.filter((l) => l.estado === 'Abierta').length;
@@ -148,6 +365,28 @@ export function LiquidacionesList() {
         </div>
       </div>
 
+      {/* Mode indicator */}
+      {selectedNumero.trim() && (
+        <div
+          className="card"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '12px',
+            backgroundColor: '#f0fdf4',
+            border: '1px solid #bbf7d0',
+            color: '#166534',
+          }}
+        >
+          <span>🎯</span>
+          <span>Búsqueda directa por número: <strong>{selectedNumero}</strong></span>
+          {mode === 'specific' && !loading && liquidaciones.length === 0 && (
+            <span style={{ color: '#dc2626', marginLeft: '8px' }}>- No encontrada</span>
+          )}
+        </div>
+      )}
+
       {/* Loading banner */}
       {loading && (
         <div
@@ -165,7 +404,12 @@ export function LiquidacionesList() {
           }}
         >
           <span>⏳</span>
-          <span>Cargando datos de liquidaciones...</span>
+          <span>
+            {mode === 'specific' 
+              ? `Buscando liquidación #${selectedNumero}...` 
+              : 'Cargando datos de liquidaciones...'
+            }
+          </span>
         </div>
       )}
 
@@ -392,6 +636,31 @@ export function LiquidacionesList() {
           </div>
           <div>
             <label style={{ fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '6px', display: 'block' }}>
+              🎯 Número de Liquidación
+            </label>
+            <input 
+              type="text"
+              placeholder="Búsqueda directa (ej: 3002)"
+              value={selectedNumero}
+              onChange={(e) => { setSelectedNumero(e.target.value); setPage(1); }}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                border: selectedNumero.trim() ? '2px solid #3b82f6' : '1px solid #d1d5db',
+                borderRadius: '8px',
+                fontSize: '14px',
+                outline: 'none',
+                backgroundColor: selectedNumero.trim() ? '#eff6ff' : 'white'
+              }}
+            />
+            {selectedNumero.trim() && (
+              <div style={{ fontSize: '11px', color: '#3b82f6', marginTop: '4px' }}>
+                💡 Usando endpoint directo /idx/liq/{selectedNumero}
+              </div>
+            )}
+          </div>
+          <div>
+            <label style={{ fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '6px', display: 'block' }}>
               Periodo
             </label>
             <select 
@@ -431,7 +700,7 @@ export function LiquidacionesList() {
               borderRadius: '8px',
               fontSize: '14px',
               cursor: 'pointer'
-            }} onClick={() => { setSelectedCompany('todas'); setSelectedStatus('todos'); setSelectedPeriod('todos'); }}>
+            }} onClick={() => { setSelectedCompany('todas'); setSelectedStatus('todos'); setSelectedPeriod('todos'); setSelectedNumero(''); }}>
               Limpiar
             </button>
           </div>
@@ -443,7 +712,11 @@ export function LiquidacionesList() {
         <div className="card-header" style={{ marginBottom: '16px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h2 style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937', margin: '0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span>📋</span> Liquidaciones ({filteredLiquidaciones.length}{typeof stats.total === 'number' ? ` / ${stats.total}` : ''})
+              <span>{mode === 'specific' ? '🎯' : '📋'}</span> 
+              {mode === 'specific' 
+                ? `Resultado de Búsqueda (${filteredLiquidaciones.length})`
+                : `Liquidaciones (${filteredLiquidaciones.length}${typeof stats.total === 'number' ? ` / ${stats.total}` : ''})`
+              }
             </h2>
             <div style={{ display: 'flex', gap: '8px' }}>
               <button style={{
